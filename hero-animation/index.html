@@ -76,10 +76,10 @@
         <filter id="bloom" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="7"/></filter>
         <radialGradient id="nodeGrad"><stop offset="0" stop-color="#e9f8ff"/><stop offset=".35" stop-color="#4fb6ff"/><stop offset="1" stop-color="#1667ff"/></radialGradient>
       </defs>
-      <g id="ring" transform="translate(586.3 777.4) rotate(33.4)">
-        <ellipse rx="278.1" ry="292.5" fill="none" stroke="#3aa2ff" stroke-opacity=".45" stroke-width="12" filter="url(#soft)"/>
-        <ellipse rx="278.1" ry="292.5" fill="none" stroke="url(#ringGrad)" stroke-opacity="1" stroke-width="3.4"/>
-        <ellipse rx="250.3" ry="263.3" fill="none" stroke="#4bb4ff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>
+      <g id="ring" transform="translate(610 790)">
+        <circle r="270" fill="none" stroke="#3aa2ff" stroke-opacity=".45" stroke-width="12" filter="url(#soft)"/>
+        <circle r="270" fill="none" stroke="url(#ringGrad)" stroke-opacity="1" stroke-width="3.4"/>
+        <circle r="244" fill="none" stroke="#4bb4ff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>
         <g id="nodes"></g>
         <g id="orbitLight">
           <circle r="14" fill="#7fdcff" opacity=".55" filter="url(#bloom)"/>
@@ -105,7 +105,7 @@
 <script>
 /* Intellicamp Feature Orbit — all coordinates are on a 1198×1264 reference artboard (2× the email hero). */
 (function(){
-  const ORBIT = {"cx": 582.0, "cy": 789.3, "rx": 320.0, "ry": 280.0, "theta": {"paper": -1.5640991441079246, "instant": -0.7599897196888351, "insights": 0.008771139139512468, "progress": 1.8484187490299901, "perf": 2.562617774069146, "smart": -2.4614867640911493}, "offset": {"paper": [-0.14308243940024568, 18.693720707638136], "instant": [-16.94978976941661, 14.095918189635768], "insights": [-98.48769081782666, -0.7558874690307675], "progress": [6.702363383740476, -20.578737944892055], "perf": [39.34768027840755, -22.506528719421794], "smart": [54.80196218038009, 38.785100037970096]}, "depth": 0.06, "edgeDeg": 40};           // cx, cy, rx, ry, theta{}, offset{}, depth, edgeDeg
+  const ORBIT = {"cx": 610.0, "cy": 790.0, "r": 270.0, "theta": {"paper": -1.66971, "instant": -0.76494, "insights": 0.00517, "progress": 1.9849, "perf": 2.6725, "smart": -2.58543}, "depth": 0.07, "stopDeg": 306.3};   // every card centre rides exactly on this circle
   const HAND  = { x:290, y:670, pivot:[85,180], tip:[124,36] };   // hand image box, wrist pivot + fingertip (image px)
   const CARDS = [
     {k:'paper',    t:'AI Paper<br>Generation',  s:'Get personalized practice<br>papers in seconds.',  box:[490,482,188,92],  f:0.88},
@@ -139,51 +139,39 @@
     el.style.width = c.box[2]+'px'; el.style.height = c.box[3]+'px';
     el.innerHTML = '<img class="ic-icon" alt="" src="assets/icon-'+c.k+'.png"><div><div class="ic-t">'+c.t+'</div><div class="ic-s">'+c.s+'</div></div><div class="ic-sel"></div>';
     cardsEl.appendChild(el);
-    const a0 = ORBIT.theta[c.k], off = ORBIT.offset[c.k];
-    return { ...c, el, icon:el.querySelector('.ic-icon'), sel:el.querySelector('.ic-sel'), a0, off,
+    const a0 = ORBIT.theta[c.k];
+    return { ...c, el, icon:el.querySelector('.ic-icon'), sel:el.querySelector('.ic-sel'), a0,
              place:(x,y,s)=>gsap.set(el,{x,y,scale:s,force3D:true}) };
   });
   const byKey = Object.fromEntries(cards.map(c=>[c.k,c]));
 
   /* ---------- orbital mathematics (one shared rotation) ---------- */
-  const orbitState = { rotation:0, pull:0 };
-  const fxState = { nudge:0, tap:1 };            // nudge: nearest card reacts to the swipe; tap: press-bounce multiplier      // pull: 0..1 moves the selected card toward the fingertip
-  const E = ORBIT.edgeDeg*Math.PI/180;
-  const smooth = t => { t=Math.min(1,Math.max(0,t)); return t*t*(3-2*t); };
-  // per-card offsets from the ideal ellipse apply only near the start/end, so every card returns exactly home
-  const offW = r => Math.max(smooth(1 - r/E), smooth((r-(2*Math.PI-E))/E));
-  const PULL_TARGET = { x:456, y:657, scale:1.07 };   // AI Paper Generation brought within reach of the fingertip
+  const orbitState = { rotation:0 };
+  const fxState = { tap:1 };                      // press-bounce multiplier for the selected card
+  const STOP = ORBIT.stopDeg*Math.PI/180;         // wheel stops with AI Paper Generation beside the fingertip
   function updateOrbitPositions(){
-    const r = orbitState.rotation, w = offW(r);
+    const r = orbitState.rotation;
     for (const c of cards){
       const a = c.a0 + r;
-      let cx = ORBIT.cx + ORBIT.rx*Math.cos(a) + c.off[0]*w;
-      let cy = ORBIT.cy + ORBIT.ry*Math.sin(a) + c.off[1]*w;
-      let s  = (1 + ORBIT.depth*Math.sin(a)) / (1 + ORBIT.depth*Math.sin(c.a0));
-      const depth = Math.sin(a);                          // +1 front (bottom), -1 back (top)
-      let bright = 1 + 0.05*depth*(r>0 && r<2*Math.PI ? 1 : 0);
-      if (c.k === SELECT && orbitState.pull>0){
-        const p = orbitState.pull;
-        cx += (PULL_TARGET.x - cx)*p; cy += (PULL_TARGET.y - cy)*p; s += (PULL_TARGET.scale - s)*p;
-      }
-      if (c.k === 'smart'){ cx += 7*fxState.nudge; cy -= 7*fxState.nudge; }
+      const cx = ORBIT.cx + ORBIT.r*Math.cos(a);
+      const cy = ORBIT.cy + ORBIT.r*Math.sin(a);
+      const d  = Math.sin(a) - Math.sin(c.a0);     // 0 at rest; + toward the front (bottom), - toward the back (top)
+      let s = 1 + ORBIT.depth*d;
       if (c.k === SELECT) s *= fxState.tap;
       c.place(cx - c.box[2]/2, cy - c.box[3]/2, s);
-      c.el.style.filter = 'brightness('+bright.toFixed(3)+') saturate('+(1+0.05*depth).toFixed(3)+')';
-      c.el.style.zIndex = (c.k===SELECT && orbitState.pull>0) ? 20 : Math.round(10 + depth*5);
+      c.el.style.filter = 'brightness('+(1+0.05*d).toFixed(3)+')';
+      c.el.style.zIndex = Math.round(10 + Math.sin(a)*5);
     }
-    // a soft light travels along the orbit with the wheel
-    const la = r*1.0 - Math.PI*0.75;
-    light.setAttribute('transform','translate('+(ORBIT_RING.rx*Math.cos(la)).toFixed(1)+' '+(ORBIT_RING.ry*Math.sin(la)).toFixed(1)+')');
+    const la = r - Math.PI*0.75;                    // a soft light rides the orbit with the wheel
+    light.setAttribute('transform','translate('+(ORBIT.r*Math.cos(la)).toFixed(1)+' '+(ORBIT.r*Math.sin(la)).toFixed(1)+')');
   }
 
   /* ---------- OrbitalTrack nodes ---------- */
-  const ORBIT_RING = { rx:278.1, ry:292.5 };
   const nodesG = document.getElementById('nodes');
   const NODE_ANG = [-150,-96,-50,-12,24,62,118,165];
   const nodes = NODE_ANG.map((d,i) => {
     const a = d*Math.PI/180, g = document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('transform','translate('+(ORBIT_RING.rx*Math.cos(a)).toFixed(1)+' '+(ORBIT_RING.ry*Math.sin(a)).toFixed(1)+')');
+    g.setAttribute('transform','translate('+(ORBIT.r*Math.cos(a)).toFixed(1)+' '+(ORBIT.r*Math.sin(a)).toFixed(1)+')');
     const r = i%3===0 ? 9 : 6;
     g.innerHTML = '<circle r="'+(r*2.4)+'" fill="#58b8ff" opacity=".45" filter="url(#bloom)" class="halo"/><circle r="'+r+'" fill="url(#nodeGrad)" stroke="#bfe9ff" stroke-width="1.5"/>';
     nodesG.appendChild(g); return g.querySelector('.halo');
@@ -197,7 +185,7 @@
     const dx = (tx-px)*handState.s, dy = (ty-py)*handState.s;
     return [HAND.x + px + dx*Math.cos(a) - dy*Math.sin(a), HAND.y + py + dx*Math.sin(a) + dy*Math.cos(a) + handState.y];
   }
-  const glowState = { o:1, s:1 };
+  const glowState = { o:0, s:1 };                  // fingertip glow: hidden at rest, shown only while interacting
   function updateHand(){
     gsap.set(hand,{ rotation:handState.rot, y:handState.y, scale:handState.s });
     const [x,y] = tipPos();
@@ -226,47 +214,45 @@
       tl.to(handState,{ rot:-7*amp, y:6*amp, duration:dur*0.35, ease:'power2.inOut' }, at)
         .to(handState,{ rot:4*amp, y:-8*amp, duration:dur*0.4, ease:'power2.out' }, at+dur*0.35)
         .to(handState,{ rot:0, y:0, duration:dur*0.5, ease:'power2.inOut' }, at+dur*0.75)
-        .to(glowState,{ o:1, s:1.35, duration:dur*0.3, yoyo:true, repeat:1, ease:'sine.inOut' }, at+dur*0.2);
+        .to(glowState,{ o:.9*amp, s:1.2, duration:dur*0.35, yoyo:true, repeat:1, ease:'sine.inOut' }, at+dur*0.2);
     };
+    const others = cards.filter(c=>c.k!==SELECT).map(c=>c.el);
 
     tl.addLabel('initial', 0)
       .to(nodes,{ opacity:.85, duration:.4, stagger:.05, yoyo:true, repeat:1, ease:'sine.inOut' }, 0)
-
       .addLabel('swipeStart', 0.8);
     swipe(0.8, 1, 0.7);
-    tl.to(fxState,{ nudge:1, duration:.25, yoyo:true, repeat:1, ease:'power1.inOut' }, 1.05)
 
-      .addLabel('orbitRotation', 1.5)
-      .to(orbitState,{ rotation:Math.PI*2, duration:5.5, ease:'power2.inOut' }, 'orbitRotation');
-    swipe(3.0, 0.7, 0.6);       // subtle impulses during the spin
+    // one smooth turn that eases to a stop with AI Paper Generation on the orbit, right by the fingertip
+    tl.addLabel('orbitRotation', 1.3)
+      .to(orbitState,{ rotation:STOP, duration:5.9, ease:'sine.inOut' }, 'orbitRotation');
+    swipe(3.0, 0.7, 0.6);
     swipe(4.6, 0.6, 0.6);
 
-    tl.addLabel('orbitStop', 7.0)
-      .set(orbitState,{ rotation:0 }, 7.0)          // 2π ≡ 0: identical positions, no visible jump
+    tl.addLabel('orbitStop', 7.2)
+      .to(others,{ opacity:.62, duration:.5, ease:'power2.out' }, 'orbitStop')
 
-      .addLabel('cardApproach', 7.0)
-      .to(orbitState,{ pull:1, duration:0.8, ease:'power2.out' }, 'cardApproach')
-      .to(cards.filter(c=>c.k!==SELECT).map(c=>c.el),{ opacity:.62, duration:.6, ease:'power2.out' }, 'cardApproach')
-
-      .addLabel('fingerTap', 7.8)
-      .to(handState,{ y:-7, s:1.025, duration:.18, ease:'power2.in' }, 'fingerTap')
+      .addLabel('fingerTap', 7.6)
+      .to(glowState,{ o:1, s:1, duration:.16, ease:'power1.out' }, 'fingerTap')
+      .to(handState,{ y:-8, s:1.02, duration:.18, ease:'power2.in' }, 'fingerTap')
       .to(handState,{ y:0, s:1, duration:.32, ease:'power2.out' }, 'fingerTap+=0.22')
-      .fromTo(ripple,{ x:TAP_TIP[0], y:TAP_TIP[1]-7, scale:.25, opacity:1 },{ scale:2.4, opacity:0, duration:.8, ease:'power2.out', immediateRender:false }, 'fingerTap+=0.18')
+      .fromTo(ripple,{ x:TAP_TIP[0], y:TAP_TIP[1]-8, scale:.25, opacity:1 },{ scale:2.4, opacity:0, duration:.8, ease:'power2.out', immediateRender:false }, 'fingerTap+=0.18')
       .to(fxState,{ keyframes:[{tap:0.97,duration:.08,ease:'power2.in'},{tap:1.07,duration:.16,ease:'back.out(1.2)'},{tap:1,duration:.22,ease:'power2.inOut'}] }, 'fingerTap+=0.18')
-      .to(glowState,{ o:1, s:1.6, duration:.12, yoyo:true, repeat:1 }, 'fingerTap+=0.16')
-
-      .addLabel('selectionComplete', 8.4)
       .to(byKey[SELECT].sel,{ opacity:1, duration:.35, ease:'power2.out' }, 'fingerTap+=0.2')
       .to(byKey[SELECT].icon,{ scale:1.12, duration:.18, yoyo:true, repeat:1, ease:'power2.inOut' }, 'fingerTap+=0.25')
+      .to(glowState,{ o:0, duration:.6, ease:'power1.inOut' }, 'fingerTap+=0.6')      // glow gone once the finger is back at rest
+
+      .addLabel('selectionComplete', 8.4)
       .to(byKey[SELECT].sel,{ opacity:.65, duration:.6 }, 'selectionComplete')
+      .addLabel('finalHold', 9.0)
 
-      .addLabel('finalHold', 9.2)
-
-      .addLabel('reset', 11.2)
-      .to(orbitState,{ pull:0, duration:.8, ease:'power2.inOut' }, 'reset')
-      .to(byKey[SELECT].sel,{ opacity:0, duration:.6 }, 'reset')
-      .to(cards.map(c=>c.el),{ opacity:1, duration:.6 }, 'reset')
-      .to({}, { duration:0.0 }, 12.0);
+      // the wheel finishes its turn back home, so each loop is exactly one 360°
+      .addLabel('reset', 10.3)
+      .to(byKey[SELECT].sel,{ opacity:0, duration:.5 }, 'reset')
+      .to(others,{ opacity:1, duration:.5 }, 'reset')
+      .to(orbitState,{ rotation:Math.PI*2, duration:1.5, ease:'sine.inOut' }, 'reset+=0.1')
+      .set(orbitState,{ rotation:0 }, 11.95)          // 2π ≡ 0: identical positions
+      .to({}, { duration:0 }, 12.0);
     return tl;
   }
 
@@ -274,7 +260,7 @@
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let tl = null;
   if (reduce){
-    orbitState.rotation=0; orbitState.pull=1; updateOrbitPositions(); updateHand();
+    orbitState.rotation=STOP; updateOrbitPositions(); updateHand();
     byKey[SELECT].sel.style.opacity=.65;
     cards.filter(c=>c.k!==SELECT).forEach(c=>c.el.style.opacity=.62);
   } else {
