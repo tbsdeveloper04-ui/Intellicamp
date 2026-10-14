@@ -7,4 +7,5 @@
 - Replace `{{unsubscribe_url}}` with your sending tool's unsubscribe merge tag
   (in Resend broadcasts the unsubscribe tag is `{{{RESEND_UNSUBSCRIBE_URL}}}`).
 - Buttons link to intellicamp.in/signup, /book and /how-it-works, with UTM tags for tracking.
-- Copy is taken from intellicamp.in. The site doesn't mention a 7-day trial; confirm that offer before sending.
+- Layout, sizes and copy follow the Figma design. The four "Text here" placeholders and the step labels use wording from intellicamp.in.
+- The site doesn't mention a 7-day trial; confirm that offer before sending.
