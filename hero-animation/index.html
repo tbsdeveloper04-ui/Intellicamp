@@ -5,11 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Intellicamp Feature Orbit</title>
 <style>
-  @font-face{font-family:"Inter";src:url("assets/Inter-latin.woff") format("woff");font-weight:100 900;font-display:swap;}
   :root{
     --page:#eef2fb;
-    --card-title:#0d1330;
-    --card-sub:#66748f;
     --cyan:#4fd2ff;
   }
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --page:#0d1224; } }
@@ -27,26 +24,12 @@
   .ic-hand{will-change:transform;}
   .ic-cards{left:0;top:0;width:1198px;height:1264px;}
 
-  /* FeatureOrbitCard */
-  .ic-card{position:absolute;left:0;top:0;box-sizing:border-box;display:flex;align-items:center;
-    font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-    border-radius:calc(15px*var(--f));
-    padding:0 calc(14px*var(--f));gap:calc(13px*var(--f));
-    background:linear-gradient(150deg,rgba(255,255,255,.93) 0%,rgba(236,245,255,.86) 40%,rgba(208,229,255,.82) 100%);
-    border:calc(1.6px*var(--f)) solid rgba(214,240,255,.95);
-    box-shadow:0 0 0 calc(1.2px*var(--f)) rgba(110,200,255,.65),
-               0 0 calc(16px*var(--f)) rgba(64,186,255,.55),
-               0 0 calc(34px*var(--f)) rgba(64,160,255,.28),
-               0 calc(10px*var(--f)) calc(22px*var(--f)) rgba(40,80,190,.16),
-               inset 0 calc(-8px*var(--f)) calc(16px*var(--f)) rgba(120,200,255,.35),
-               inset 0 calc(2px*var(--f)) 0 rgba(255,255,255,.9);
-    will-change:transform,filter;transform-origin:50% 50%;}
-  .ic-card .ic-icon{flex:none;width:calc(46px*var(--f));height:calc(46px*var(--f));border-radius:calc(11px*var(--f));
-    box-shadow:0 0 calc(12px*var(--f)) rgba(30,140,255,.45);display:block;}
-  .ic-card .ic-t{font-weight:700;font-size:calc(16.6px*var(--f));line-height:1.1;letter-spacing:-.018em;color:var(--card-title);white-space:nowrap;}
-  .ic-card .ic-s{margin-top:calc(6px*var(--f));font-weight:450;font-size:calc(10.6px*var(--f));line-height:1.35;color:var(--card-sub);white-space:nowrap;}
-  .ic-card .ic-sel{position:absolute;inset:calc(-3px*var(--f));border-radius:calc(17px*var(--f));pointer-events:none;opacity:0;
-    box-shadow:0 0 0 calc(2.5px*var(--f)) var(--cyan),0 0 calc(26px*var(--f)) rgba(79,210,255,.85),0 0 calc(60px*var(--f)) rgba(60,150,255,.45);}
+  /* FeatureOrbitCard: the original card artwork, one image per card */
+  .ic-card{position:absolute;left:0;top:0;will-change:transform,filter;transform-origin:50% 50%;}
+  .ic-card .ic-cardimg{position:absolute;display:block;max-width:none;}
+  .ic-card .ic-icon{position:absolute;display:block;max-width:none;transform-origin:50% 50%;}
+  .ic-card .ic-sel{position:absolute;inset:-3px;border-radius:19px;pointer-events:none;opacity:0;
+    box-shadow:0 0 0 2.5px var(--cyan),0 0 26px rgba(79,210,255,.85),0 0 60px rgba(60,150,255,.45);}
 
   /* TouchRipple + fingertip glow */
   .ic-fx{left:0;top:0;width:1198px;height:1264px;pointer-events:none;}
@@ -63,7 +46,7 @@
 </head>
 <body>
 
-<div class="ic-orbit" id="orbit" role="img" aria-label="A student surrounded by six Intellicamp AI features: AI Paper Generation, Instant AI Exam, Exam Insights, Progress Analytics, Performance Tracking and Smart Study Material. He spins them around him and taps AI Paper Generation.">
+<div class="ic-orbit" id="orbit" role="img" aria-label="A student surrounded by six Intellicamp AI features: AI Paper Generation, Instant AI Exam, Exam Insights, Progress Analytics, Performance Tracking and Smart Study Material. He spins them around him and taps Smart Study Material.">
   <div class="ic-stage">
     <img class="ic-bg" src="assets/background.jpg" alt="">
     <!-- OrbitalTrack -->
@@ -90,7 +73,7 @@
       <path id="trail" d="" fill="none" stroke="#9fe6ff" stroke-width="6" stroke-linecap="round" opacity="0" filter="url(#soft)"/>
     </svg>
     <!-- StudentImageLayer -->
-    <img class="ic-body" src="assets/student-body.png" alt="" style="left:297px;top:605px;width:578px;height:500px">
+    <img class="ic-body" src="assets/student-body.png" alt="" style="left:297px;top:598px;width:579px;height:564px">
     <div class="ic-cards" id="cards"></div>
     <!-- StudentHandInteraction -->
     <img class="ic-hand" id="hand" src="assets/student-hand.png" alt="" style="left:290px;top:670px;width:190px;height:210px;transform-origin:85px 180px">
@@ -105,17 +88,17 @@
 <script>
 /* Intellicamp Feature Orbit — all coordinates are on a 1198×1264 reference artboard (2× the email hero). */
 (function(){
-  const ORBIT = {"cx": 610.0, "cy": 790.0, "r": 270.0, "theta": {"paper": -1.66971, "instant": -0.76494, "insights": 0.00517, "progress": 1.9849, "perf": 2.6725, "smart": -2.58543}, "depth": 0.07, "stopDeg": 306.3};   // every card centre rides exactly on this circle
+  const ORBIT = {"cx": 610.0, "cy": 790.0, "r": 270.0, "theta": {"paper": -1.66971, "instant": -0.76494, "insights": 0.00517, "progress": 1.9849, "perf": 2.6725, "smart": -2.58543}, "depth": 0.07, "stopDeg": 360};   // every card centre rides exactly on this circle
   const HAND  = { x:290, y:670, pivot:[85,180], tip:[124,36] };   // hand image box, wrist pivot + fingertip (image px)
   const CARDS = [
-    {k:'paper',    t:'AI Paper<br>Generation',  s:'Get personalized practice<br>papers in seconds.',  box:[490,482,188,92],  f:0.88},
-    {k:'instant',  t:'Instant AI<br>Exam',      s:'Practice smarter<br>with AI-adaptive tests.',       box:[716,566,162,89],  f:0.81},
-    {k:'insights', t:'Exam<br>Insights',        s:'Understand your<br>strengths and gaps.',            box:[726,748,155,86],  f:0.84},
-    {k:'progress', t:'Progress<br>Analytics',   s:'Set goals and achieve<br>them with AI guidance.',   box:[411,992,180,92],  f:0.95},
-    {k:'perf',     t:'Performance<br>Tracking', s:'Track your progress<br>in real-time.',              box:[267,872,173,96],  f:0.93},
-    {k:'smart',    t:'Smart<br>Study Material', s:'AI-curated notes,<br>summaries &amp; more.',        box:[283,602,210,100], f:1.0}
+    {k:'paper', box:[490, 482, 188, 92], m:12, icon:[10, 10, 48, 48]},
+    {k:'instant', box:[716, 566, 162, 89], m:12, icon:[10, 10, 45, 46]},
+    {k:'insights', box:[726, 748, 155, 86], m:12, icon:[12, 10, 47, 46]},
+    {k:'progress', box:[411, 992, 180, 92], m:12, icon:[11, 10, 54, 52]},
+    {k:'perf', box:[267, 872, 173, 96], m:12, icon:[10, 9, 52, 51]},
+    {k:'smart', box:[283, 602, 210, 100], m:12, icon:[12, 12, 55, 52]}
   ];
-  const SELECT = 'paper';
+  const SELECT = 'smart';                 // the card the student taps
   const CONFIG = { loop:true };
 
   const root  = document.getElementById('orbit');
@@ -135,9 +118,11 @@
   const cards = CARDS.map(c => {
     const el = document.createElement('div');
     el.className = 'ic-card'; el.dataset.k = c.k;
-    el.style.setProperty('--f', c.f);
     el.style.width = c.box[2]+'px'; el.style.height = c.box[3]+'px';
-    el.innerHTML = '<img class="ic-icon" alt="" src="assets/icon-'+c.k+'.png"><div><div class="ic-t">'+c.t+'</div><div class="ic-s">'+c.s+'</div></div><div class="ic-sel"></div>';
+    const W = c.box[2]+2*c.m, H = c.box[3]+2*c.m, [ix,iy,iw,ih] = c.icon;
+    el.innerHTML = '<img class="ic-cardimg" alt="" src="assets/card-'+c.k+'.png" style="left:'+(-c.m)+'px;top:'+(-c.m)+'px;width:'+W+'px;height:'+H+'px">'
+                 + '<img class="ic-icon" alt="" src="assets/icon-'+c.k+'.png" style="left:'+ix+'px;top:'+iy+'px;width:'+iw+'px;height:'+ih+'px">'
+                 + '<div class="ic-sel"></div>';
     cardsEl.appendChild(el);
     const a0 = ORBIT.theta[c.k];
     return { ...c, el, icon:el.querySelector('.ic-icon'), sel:el.querySelector('.ic-sel'), a0,
@@ -148,7 +133,7 @@
   /* ---------- orbital mathematics (one shared rotation) ---------- */
   const orbitState = { rotation:0 };
   const fxState = { tap:1 };                      // press-bounce multiplier for the selected card
-  const STOP = ORBIT.stopDeg*Math.PI/180;         // wheel stops with AI Paper Generation beside the fingertip
+  const STOP = ORBIT.stopDeg*Math.PI/180;         // wheel stops with Smart Study Material beside the fingertip
   function updateOrbitPositions(){
     const r = orbitState.rotation;
     for (const c of cards){
@@ -223,7 +208,7 @@
       .addLabel('swipeStart', 0.8);
     swipe(0.8, 1, 0.7);
 
-    // one smooth turn that eases to a stop with AI Paper Generation on the orbit, right by the fingertip
+    // one smooth 360° turn that eases to a stop with Smart Study Material back on the orbit, right by the fingertip
     tl.addLabel('orbitRotation', 1.3)
       .to(orbitState,{ rotation:STOP, duration:5.9, ease:'sine.inOut' }, 'orbitRotation');
     swipe(3.0, 0.7, 0.6);
@@ -246,11 +231,9 @@
       .to(byKey[SELECT].sel,{ opacity:.65, duration:.6 }, 'selectionComplete')
       .addLabel('finalHold', 9.0)
 
-      // the wheel finishes its turn back home, so each loop is exactly one 360°
       .addLabel('reset', 10.3)
       .to(byKey[SELECT].sel,{ opacity:0, duration:.5 }, 'reset')
       .to(others,{ opacity:1, duration:.5 }, 'reset')
-      .to(orbitState,{ rotation:Math.PI*2, duration:1.5, ease:'sine.inOut' }, 'reset+=0.1')
       .set(orbitState,{ rotation:0 }, 11.95)          // 2π ≡ 0: identical positions
       .to({}, { duration:0 }, 12.0);
     return tl;
