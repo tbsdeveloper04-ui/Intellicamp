@@ -3,7 +3,7 @@
 Export each layer from the Figma file "Recrutly Email template" as **PNG at 2x**, using exactly these file names.
 Upload them into the `email/` folder of this repo (Add file → Upload files on GitHub). The template already points to:
 
-    https://raw.githubusercontent.com/tbsdeveloper04-ui/intellicamp/main/email/
+    https://raw.githubusercontent.com/tbsdeveloper04-ui/Intellicamp/main/email/
 
 If you host them somewhere else, find-and-replace that address in `intellicamp-email.html`.
 
