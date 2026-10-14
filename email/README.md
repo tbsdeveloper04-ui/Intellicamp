@@ -4,7 +4,7 @@
 - Images in this folder are linked from the template via raw.githubusercontent.com. Keep this repo **public** and don't rename or move them, or the images in sent emails will break.
 
 ## Before sending
-- Replace `{{company_address}}` and `{{unsubscribe_url}}` with your sending tool's merge tags
+- Replace `{{unsubscribe_url}}` with your sending tool's unsubscribe merge tag
   (in Resend broadcasts the unsubscribe tag is `{{{RESEND_UNSUBSCRIBE_URL}}}`).
-- Point the button links at your real sign-up and demo pages (they currently go to intellicamp.in with UTM tags).
-- `workflow.png` is still the Recrutly mockup from the Figma file; replace it with an Intellicamp screenshot (same name, 564×464 px).
+- Buttons link to intellicamp.in/signup, /book and /how-it-works, with UTM tags for tracking.
+- Copy is taken from intellicamp.in. The site doesn't mention a 7-day trial; confirm that offer before sending.
