@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intellicamp Feature Orbit</title>
+<style>
+  @font-face{font-family:"Inter";src:url("assets/Inter-latin.woff") format("woff");font-weight:100 900;font-display:swap;}
+  :root{
+    --page:#eef2fb;
+    --card-title:#0d1330;
+    --card-sub:#66748f;
+    --cyan:#4fd2ff;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --page:#0d1224; } }
+  :root[data-theme="dark"]{ --page:#0d1224; }
+  html,body{margin:0;background:var(--page);}
+  body{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;box-sizing:border-box;}
+
+  /* ===== IntellicampFeatureOrbit ===== */
+  .ic-orbit{position:relative;width:100%;max-width:600px;aspect-ratio:1198/1264;overflow:hidden;border-radius:0 0 48px 48px;}
+  .ic-stage{position:absolute;left:0;top:0;width:1198px;height:1264px;transform-origin:0 0;}
+  .ic-stage > *{position:absolute;}
+  .ic-bg{left:0;top:0;width:1198px;height:1264px;}
+  .ic-svg{left:0;top:0;width:1198px;height:1264px;overflow:visible;}
+  .ic-body{will-change:transform;}
+  .ic-hand{will-change:transform;}
+  .ic-cards{left:0;top:0;width:1198px;height:1264px;}
+
+  /* FeatureOrbitCard */
+  .ic-card{position:absolute;left:0;top:0;box-sizing:border-box;display:flex;align-items:center;
+    font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    border-radius:calc(15px*var(--f));
+    padding:0 calc(14px*var(--f));gap:calc(13px*var(--f));
+    background:linear-gradient(150deg,rgba(255,255,255,.93) 0%,rgba(236,245,255,.86) 40%,rgba(208,229,255,.82) 100%);
+    border:calc(1.6px*var(--f)) solid rgba(214,240,255,.95);
+    box-shadow:0 0 0 calc(1.2px*var(--f)) rgba(110,200,255,.65),
+               0 0 calc(16px*var(--f)) rgba(64,186,255,.55),
+               0 0 calc(34px*var(--f)) rgba(64,160,255,.28),
+               0 calc(10px*var(--f)) calc(22px*var(--f)) rgba(40,80,190,.16),
+               inset 0 calc(-8px*var(--f)) calc(16px*var(--f)) rgba(120,200,255,.35),
+               inset 0 calc(2px*var(--f)) 0 rgba(255,255,255,.9);
+    will-change:transform,filter;transform-origin:50% 50%;}
+  .ic-card .ic-icon{flex:none;width:calc(46px*var(--f));height:calc(46px*var(--f));border-radius:calc(11px*var(--f));
+    box-shadow:0 0 calc(12px*var(--f)) rgba(30,140,255,.45);display:block;}
+  .ic-card .ic-t{font-weight:700;font-size:calc(16.6px*var(--f));line-height:1.1;letter-spacing:-.018em;color:var(--card-title);white-space:nowrap;}
+  .ic-card .ic-s{margin-top:calc(6px*var(--f));font-weight:450;font-size:calc(10.6px*var(--f));line-height:1.35;color:var(--card-sub);white-space:nowrap;}
+  .ic-card .ic-sel{position:absolute;inset:calc(-3px*var(--f));border-radius:calc(17px*var(--f));pointer-events:none;opacity:0;
+    box-shadow:0 0 0 calc(2.5px*var(--f)) var(--cyan),0 0 calc(26px*var(--f)) rgba(79,210,255,.85),0 0 calc(60px*var(--f)) rgba(60,150,255,.45);}
+
+  /* TouchRipple + fingertip glow */
+  .ic-fx{left:0;top:0;width:1198px;height:1264px;pointer-events:none;}
+  .ic-glow{position:absolute;left:0;top:0;width:104px;height:104px;margin:-52px 0 0 -52px;border-radius:50%;
+    background:
+      radial-gradient(circle,rgba(255,255,255,1) 0 13%,rgba(210,248,255,1) 18%,rgba(90,210,255,.9) 25%,rgba(90,210,255,0) 33%),
+      radial-gradient(circle,rgba(0,0,0,0) 0 36%,rgba(150,232,255,.95) 39%,rgba(150,232,255,.0) 44%),
+      radial-gradient(circle,rgba(70,180,255,.45) 0 30%,rgba(70,180,255,.18) 55%,rgba(70,180,255,0) 72%);}
+  .ic-ripple{position:absolute;left:0;top:0;width:70px;height:70px;margin:-35px 0 0 -35px;border-radius:50%;
+    border:4px solid rgba(110,225,255,.95);box-shadow:0 0 18px rgba(79,210,255,.8),inset 0 0 12px rgba(79,210,255,.5);opacity:0;}
+
+  @media (prefers-reduced-motion: reduce){ .ic-card{transition:none} }
+</style>
+</head>
+<body>
+
+<div class="ic-orbit" id="orbit" role="img" aria-label="A student surrounded by six Intellicamp AI features: AI Paper Generation, Instant AI Exam, Exam Insights, Progress Analytics, Performance Tracking and Smart Study Material. He spins them around him and taps AI Paper Generation.">
+  <div class="ic-stage">
+    <img class="ic-bg" src="assets/background.jpg" alt="">
+    <!-- OrbitalTrack -->
+    <svg class="ic-svg" viewBox="0 0 1198 1264" aria-hidden="true">
+      <defs>
+        <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#7fd6ff"/><stop offset=".5" stop-color="#2f8dff"/><stop offset="1" stop-color="#7fd6ff"/>
+        </linearGradient>
+        <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+        <filter id="bloom" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="7"/></filter>
+        <radialGradient id="nodeGrad"><stop offset="0" stop-color="#e9f8ff"/><stop offset=".35" stop-color="#4fb6ff"/><stop offset="1" stop-color="#1667ff"/></radialGradient>
+      </defs>
+      <g id="ring" transform="translate(586.3 777.4) rotate(33.4)">
+        <ellipse rx="278.1" ry="292.5" fill="none" stroke="#3aa2ff" stroke-opacity=".45" stroke-width="12" filter="url(#soft)"/>
+        <ellipse rx="278.1" ry="292.5" fill="none" stroke="url(#ringGrad)" stroke-opacity="1" stroke-width="3.4"/>
+        <ellipse rx="250.3" ry="263.3" fill="none" stroke="#4bb4ff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round"/>
+        <g id="nodes"></g>
+        <g id="orbitLight">
+          <circle r="14" fill="#7fdcff" opacity=".55" filter="url(#bloom)"/>
+          <circle r="5" fill="#f2fbff"/>
+        </g>
+      </g>
+      <!-- swipe light trail (artboard space) -->
+      <path id="trail" d="" fill="none" stroke="#9fe6ff" stroke-width="6" stroke-linecap="round" opacity="0" filter="url(#soft)"/>
+    </svg>
+    <!-- StudentImageLayer -->
+    <img class="ic-body" src="assets/student-body.png" alt="" style="left:297px;top:605px;width:578px;height:500px">
+    <div class="ic-cards" id="cards"></div>
+    <!-- StudentHandInteraction -->
+    <img class="ic-hand" id="hand" src="assets/student-hand.png" alt="" style="left:290px;top:670px;width:190px;height:210px;transform-origin:85px 180px">
+    <div class="ic-fx" aria-hidden="true">
+      <div class="ic-glow" id="glow"></div>
+      <div class="ic-ripple" id="ripple"></div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/gsap.min.js"></script>
+<script>
+/* Intellicamp Feature Orbit — all coordinates are on a 1198×1264 reference artboard (2× the email hero). */
+(function(){
+  const ORBIT = {"cx": 582.0, "cy": 789.3, "rx": 320.0, "ry": 280.0, "theta": {"paper": -1.5640991441079246, "instant": -0.7599897196888351, "insights": 0.008771139139512468, "progress": 1.8484187490299901, "perf": 2.562617774069146, "smart": -2.4614867640911493}, "offset": {"paper": [-0.14308243940024568, 18.693720707638136], "instant": [-16.94978976941661, 14.095918189635768], "insights": [-98.48769081782666, -0.7558874690307675], "progress": [6.702363383740476, -20.578737944892055], "perf": [39.34768027840755, -22.506528719421794], "smart": [54.80196218038009, 38.785100037970096]}, "depth": 0.06, "edgeDeg": 40};           // cx, cy, rx, ry, theta{}, offset{}, depth, edgeDeg
+  const HAND  = { x:290, y:670, pivot:[85,180], tip:[124,36] };   // hand image box, wrist pivot + fingertip (image px)
+  const CARDS = [
+    {k:'paper',    t:'AI Paper<br>Generation',  s:'Get personalized practice<br>papers in seconds.',  box:[490,482,188,92],  f:0.88},
+    {k:'instant',  t:'Instant AI<br>Exam',      s:'Practice smarter<br>with AI-adaptive tests.',       box:[716,566,162,89],  f:0.81},
+    {k:'insights', t:'Exam<br>Insights',        s:'Understand your<br>strengths and gaps.',            box:[726,748,155,86],  f:0.84},
+    {k:'progress', t:'Progress<br>Analytics',   s:'Set goals and achieve<br>them with AI guidance.',   box:[411,992,180,92],  f:0.95},
+    {k:'perf',     t:'Performance<br>Tracking', s:'Track your progress<br>in real-time.',              box:[267,872,173,96],  f:0.93},
+    {k:'smart',    t:'Smart<br>Study Material', s:'AI-curated notes,<br>summaries &amp; more.',        box:[283,602,210,100], f:1.0}
+  ];
+  const SELECT = 'paper';
+  const CONFIG = { loop:true };
+
+  const root  = document.getElementById('orbit');
+  const stage = root.querySelector('.ic-stage');
+  const cardsEl = document.getElementById('cards');
+  const hand = document.getElementById('hand');
+  const glow = document.getElementById('glow');
+  const ripple = document.getElementById('ripple');
+  const trail = document.getElementById('trail');
+  const light = document.getElementById('orbitLight');
+
+  /* ---------- responsive: scale the whole artboard ---------- */
+  const fit = () => { stage.style.transform = 'scale(' + (root.clientWidth/1198) + ')'; };
+  new ResizeObserver(fit).observe(root); fit();
+
+  /* ---------- FeatureOrbitCard ---------- */
+  const cards = CARDS.map(c => {
+    const el = document.createElement('div');
+    el.className = 'ic-card'; el.dataset.k = c.k;
+    el.style.setProperty('--f', c.f);
+    el.style.width = c.box[2]+'px'; el.style.height = c.box[3]+'px';
+    el.innerHTML = '<img class="ic-icon" alt="" src="assets/icon-'+c.k+'.png"><div><div class="ic-t">'+c.t+'</div><div class="ic-s">'+c.s+'</div></div><div class="ic-sel"></div>';
+    cardsEl.appendChild(el);
+    const a0 = ORBIT.theta[c.k], off = ORBIT.offset[c.k];
+    return { ...c, el, icon:el.querySelector('.ic-icon'), sel:el.querySelector('.ic-sel'), a0, off,
+             place:(x,y,s)=>gsap.set(el,{x,y,scale:s,force3D:true}) };
+  });
+  const byKey = Object.fromEntries(cards.map(c=>[c.k,c]));
+
+  /* ---------- orbital mathematics (one shared rotation) ---------- */
+  const orbitState = { rotation:0, pull:0 };
+  const fxState = { nudge:0, tap:1 };            // nudge: nearest card reacts to the swipe; tap: press-bounce multiplier      // pull: 0..1 moves the selected card toward the fingertip
+  const E = ORBIT.edgeDeg*Math.PI/180;
+  const smooth = t => { t=Math.min(1,Math.max(0,t)); return t*t*(3-2*t); };
+  // per-card offsets from the ideal ellipse apply only near the start/end, so every card returns exactly home
+  const offW = r => Math.max(smooth(1 - r/E), smooth((r-(2*Math.PI-E))/E));
+  const PULL_TARGET = { x:456, y:657, scale:1.07 };   // AI Paper Generation brought within reach of the fingertip
+  function updateOrbitPositions(){
+    const r = orbitState.rotation, w = offW(r);
+    for (const c of cards){
+      const a = c.a0 + r;
+      let cx = ORBIT.cx + ORBIT.rx*Math.cos(a) + c.off[0]*w;
+      let cy = ORBIT.cy + ORBIT.ry*Math.sin(a) + c.off[1]*w;
+      let s  = (1 + ORBIT.depth*Math.sin(a)) / (1 + ORBIT.depth*Math.sin(c.a0));
+      const depth = Math.sin(a);                          // +1 front (bottom), -1 back (top)
+      let bright = 1 + 0.05*depth*(r>0 && r<2*Math.PI ? 1 : 0);
+      if (c.k === SELECT && orbitState.pull>0){
+        const p = orbitState.pull;
+        cx += (PULL_TARGET.x - cx)*p; cy += (PULL_TARGET.y - cy)*p; s += (PULL_TARGET.scale - s)*p;
+      }
+      if (c.k === 'smart'){ cx += 7*fxState.nudge; cy -= 7*fxState.nudge; }
+      if (c.k === SELECT) s *= fxState.tap;
+      c.place(cx - c.box[2]/2, cy - c.box[3]/2, s);
+      c.el.style.filter = 'brightness('+bright.toFixed(3)+') saturate('+(1+0.05*depth).toFixed(3)+')';
+      c.el.style.zIndex = (c.k===SELECT && orbitState.pull>0) ? 20 : Math.round(10 + depth*5);
+    }
+    // a soft light travels along the orbit with the wheel
+    const la = r*1.0 - Math.PI*0.75;
+    light.setAttribute('transform','translate('+(ORBIT_RING.rx*Math.cos(la)).toFixed(1)+' '+(ORBIT_RING.ry*Math.sin(la)).toFixed(1)+')');
+  }
+
+  /* ---------- OrbitalTrack nodes ---------- */
+  const ORBIT_RING = { rx:278.1, ry:292.5 };
+  const nodesG = document.getElementById('nodes');
+  const NODE_ANG = [-150,-96,-50,-12,24,62,118,165];
+  const nodes = NODE_ANG.map((d,i) => {
+    const a = d*Math.PI/180, g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('transform','translate('+(ORBIT_RING.rx*Math.cos(a)).toFixed(1)+' '+(ORBIT_RING.ry*Math.sin(a)).toFixed(1)+')');
+    const r = i%3===0 ? 9 : 6;
+    g.innerHTML = '<circle r="'+(r*2.4)+'" fill="#58b8ff" opacity=".45" filter="url(#bloom)" class="halo"/><circle r="'+r+'" fill="url(#nodeGrad)" stroke="#bfe9ff" stroke-width="1.5"/>';
+    nodesG.appendChild(g); return g.querySelector('.halo');
+  });
+
+  /* ---------- StudentHandInteraction ---------- */
+  const handState = { rot:0, y:0, s:1 };
+  const toRad = d => d*Math.PI/180;
+  function tipPos(){
+    const [px,py] = HAND.pivot, [tx,ty] = HAND.tip, a = toRad(handState.rot);
+    const dx = (tx-px)*handState.s, dy = (ty-py)*handState.s;
+    return [HAND.x + px + dx*Math.cos(a) - dy*Math.sin(a), HAND.y + py + dx*Math.sin(a) + dy*Math.cos(a) + handState.y];
+  }
+  const glowState = { o:1, s:1 };
+  function updateHand(){
+    gsap.set(hand,{ rotation:handState.rot, y:handState.y, scale:handState.s });
+    const [x,y] = tipPos();
+    gsap.set(glow,{ x, y, opacity:glowState.o, scale:glowState.s });
+  }
+  const svg = trail.ownerSVGElement;
+  function makeTrail(fromRot,toRot){
+    const pts=[]; const save=handState.rot;
+    for(let i=0;i<=12;i++){ handState.rot = fromRot+(toRot-fromRot)*i/12; pts.push(tipPos()); }
+    handState.rot = save;
+    const p = trail.cloneNode(); p.removeAttribute('id');
+    p.setAttribute('d','M'+pts.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' L'));
+    svg.appendChild(p);
+    const len = p.getTotalLength(); p.style.strokeDasharray = len; p.style.strokeDashoffset = len; p.style.opacity = 0;
+    return { p, len };
+  }
+
+  /* ---------- master timeline ---------- */
+  const TAP_TIP = tipPos();                         // contact point for the tap ripple
+  function buildTimeline(){
+    const tl = gsap.timeline({ repeat: CONFIG.loop ? -1 : 0, onUpdate:()=>{ updateOrbitPositions(); updateHand(); } });
+    const swipe = (at, amp=1, dur=0.7) => {
+      const tr = makeTrail(-7*amp, 4*amp);       // light trail follows the fingertip arc
+      tl.fromTo(tr.p,{ strokeDashoffset:tr.len, opacity:0 },{ strokeDashoffset:0, opacity:.8, duration:dur*0.6, ease:'power2.out', immediateRender:false }, at+dur*0.3)
+        .to(tr.p,{ opacity:0, duration:0.5, ease:'power1.out' }, at+dur*0.9);
+      tl.to(handState,{ rot:-7*amp, y:6*amp, duration:dur*0.35, ease:'power2.inOut' }, at)
+        .to(handState,{ rot:4*amp, y:-8*amp, duration:dur*0.4, ease:'power2.out' }, at+dur*0.35)
+        .to(handState,{ rot:0, y:0, duration:dur*0.5, ease:'power2.inOut' }, at+dur*0.75)
+        .to(glowState,{ o:1, s:1.35, duration:dur*0.3, yoyo:true, repeat:1, ease:'sine.inOut' }, at+dur*0.2);
+    };
+
+    tl.addLabel('initial', 0)
+      .to(nodes,{ opacity:.85, duration:.4, stagger:.05, yoyo:true, repeat:1, ease:'sine.inOut' }, 0)
+
+      .addLabel('swipeStart', 0.8);
+    swipe(0.8, 1, 0.7);
+    tl.to(fxState,{ nudge:1, duration:.25, yoyo:true, repeat:1, ease:'power1.inOut' }, 1.05)
+
+      .addLabel('orbitRotation', 1.5)
+      .to(orbitState,{ rotation:Math.PI*2, duration:5.5, ease:'power2.inOut' }, 'orbitRotation');
+    swipe(3.0, 0.7, 0.6);       // subtle impulses during the spin
+    swipe(4.6, 0.6, 0.6);
+
+    tl.addLabel('orbitStop', 7.0)
+      .set(orbitState,{ rotation:0 }, 7.0)          // 2π ≡ 0: identical positions, no visible jump
+
+      .addLabel('cardApproach', 7.0)
+      .to(orbitState,{ pull:1, duration:0.8, ease:'power2.out' }, 'cardApproach')
+      .to(cards.filter(c=>c.k!==SELECT).map(c=>c.el),{ opacity:.62, duration:.6, ease:'power2.out' }, 'cardApproach')
+
+      .addLabel('fingerTap', 7.8)
+      .to(handState,{ y:-7, s:1.025, duration:.18, ease:'power2.in' }, 'fingerTap')
+      .to(handState,{ y:0, s:1, duration:.32, ease:'power2.out' }, 'fingerTap+=0.22')
+      .fromTo(ripple,{ x:TAP_TIP[0], y:TAP_TIP[1]-7, scale:.25, opacity:1 },{ scale:2.4, opacity:0, duration:.8, ease:'power2.out', immediateRender:false }, 'fingerTap+=0.18')
+      .to(fxState,{ keyframes:[{tap:0.97,duration:.08,ease:'power2.in'},{tap:1.07,duration:.16,ease:'back.out(1.2)'},{tap:1,duration:.22,ease:'power2.inOut'}] }, 'fingerTap+=0.18')
+      .to(glowState,{ o:1, s:1.6, duration:.12, yoyo:true, repeat:1 }, 'fingerTap+=0.16')
+
+      .addLabel('selectionComplete', 8.4)
+      .to(byKey[SELECT].sel,{ opacity:1, duration:.35, ease:'power2.out' }, 'fingerTap+=0.2')
+      .to(byKey[SELECT].icon,{ scale:1.12, duration:.18, yoyo:true, repeat:1, ease:'power2.inOut' }, 'fingerTap+=0.25')
+      .to(byKey[SELECT].sel,{ opacity:.65, duration:.6 }, 'selectionComplete')
+
+      .addLabel('finalHold', 9.2)
+
+      .addLabel('reset', 11.2)
+      .to(orbitState,{ pull:0, duration:.8, ease:'power2.inOut' }, 'reset')
+      .to(byKey[SELECT].sel,{ opacity:0, duration:.6 }, 'reset')
+      .to(cards.map(c=>c.el),{ opacity:1, duration:.6 }, 'reset')
+      .to({}, { duration:0.0 }, 12.0);
+    return tl;
+  }
+
+  /* ---------- reduced motion: static completed composition ---------- */
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let tl = null;
+  if (reduce){
+    orbitState.rotation=0; orbitState.pull=1; updateOrbitPositions(); updateHand();
+    byKey[SELECT].sel.style.opacity=.65;
+    cards.filter(c=>c.k!==SELECT).forEach(c=>c.el.style.opacity=.62);
+  } else {
+    updateOrbitPositions(); updateHand();
+    tl = buildTimeline();
+    // pause while off-screen
+    new IntersectionObserver(es=>{ es.forEach(e=> e.isIntersecting ? tl.play() : tl.pause()); },{threshold:0.05}).observe(root);
+  }
+  window.IntellicampFeatureOrbit = { timeline:()=>tl, config:CONFIG, update:()=>{updateOrbitPositions();updateHand();} };
+})();
+</script>
+</body>
+</html>
