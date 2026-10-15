@@ -117,7 +117,8 @@
   @keyframes deltaIn{ 0%{opacity:0; transform:translateX(-.6em) translateY(.25em)} 60%{opacity:1; transform:translateX(.08em) translateY(-.12em)} 100%{opacity:1; transform:none} }
 
   /* ---------- reset: everything eases back together ---------- */
-  .resetting .blk i{ transition-duration:var(--reset-ms) !important; transition-delay:0ms !important; }
+  .resetting .blk.f i{ transform:scaleX(1); opacity:0; transition:opacity var(--reset-ms) ease !important; }   /* filled blocks fade out instead of shrinking */
+  .snap .blk i{ transition:none !important; }                                                                   /* jump back to empty, unseen */
   .resetting .name, .resetting .legend li{ transition-duration:var(--reset-ms); }
   .resetting .delta{ animation:none; opacity:0; transition:opacity calc(var(--reset-ms) * .6) ease; }
 
@@ -351,7 +352,8 @@ async function play(){
       setDonut(1 - e);
     }, id, t => t * t * (3 - 2 * t));
     if (id !== runId) return;
-    card.classList.remove('resetting');
+    card.classList.add('snap'); card.classList.remove('resetting');   // blocks jump to empty while invisible
+    void card.offsetWidth; card.classList.remove('snap');
     donutEl.classList.remove('pulse');
     await sleep(START_DELAY); if (id !== runId) return;
   }
