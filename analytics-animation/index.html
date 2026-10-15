@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter Map Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     Colours (picked from assets/analytics.png)
+     ============================================================ */
+  :root{
+    --page:#f6f9ff;
+    --card:#ffffff;
+    --card-line:#e8ecf3;
+    --divider:#e6e9ef;
+
+    --ink:#1d2233;            /* chapter names, numbers */
+    --ink-soft:#596072;       /* legend text */
+    --muted:#8a91a0;          /* small caps labels */
+    --name-start:#b7bcc6;     /* chapter name before its row starts */
+
+    --blue:#2a6af7;    --blue-track:#dde7fd;
+    --red:#d32f0f;     --red-track:#f8ded7;
+    --green:#5e9f1a;   --flat:#9aa0ab;
+    --ring-track:#efefef;
+
+    /* written by the script from the timing constants */
+    --block-stagger:60ms; --block-fill:260ms; --reset-ms:700ms;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh; background:var(--page);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+    padding:24px 16px; font-family:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink);
+  }
+
+  /* ============================================================
+     Card. Sizes are in em; the card's font-size follows the width
+     of .stage, so everything scales together.
+     Wide design: 1208 px (2x the reference image) == 75.5em.
+     ============================================================ */
+  .stage{ width:min(100%,1000px); container-type:inline-size; }
+  .card{
+    font-size:calc(100cqi / 75.5);
+    width:100%; background:var(--card); border:1px solid var(--card-line); border-radius:1.5em;
+    box-shadow:0 1.4em 2.8em rgba(40,70,130,.10), 0 .2em .5em rgba(40,70,130,.05);
+    padding-bottom:1.05em;
+  }
+
+  /* ---------- header ---------- */
+  .head{
+    margin:0 4.375em 0 3em; height:3.44em; display:flex; align-items:center; justify-content:space-between; gap:1em;
+    border-bottom:1px dashed var(--divider);
+  }
+  .title{ font-size:.75em; font-weight:600; letter-spacing:.1em; color:#535a6a; text-transform:uppercase; white-space:nowrap; }
+  .key{ display:flex; gap:2em; font-size:.68em; color:#6b7282; white-space:nowrap; }
+  .key span{ display:inline-flex; align-items:center; gap:.7em; }
+
+  .dot{ width:.62em; height:.62em; border-radius:50%; display:inline-block; flex:none; }
+  .dot.blue{ background:var(--blue); } .dot.red{ background:var(--red); } .dot.none{ background:transparent; }
+
+  /* ---------- body ---------- */
+  .body{
+    margin:0 4.375em 0 3em; display:grid; grid-template-columns:13.625em 1fr;
+    border-bottom:1px dashed var(--divider); padding-bottom:.9em;
+  }
+
+  /* left: donut + legend */
+  .left{ padding-top:1.5em; }
+  .donut{ position:relative; width:7.625em; height:7.625em; margin-left:2em; }
+  .donut svg{ width:100%; height:100%; display:block; overflow:visible; }
+  .donut circle{ fill:none; stroke-width:12; }
+  .donut .track{ stroke:var(--ring-track); }
+  .donut .arc{ stroke-linecap:round; }
+  .donut .arc.blue{ stroke:var(--blue); } .donut .arc.red{ stroke:var(--red); }
+  .donut .glow{ position:absolute; inset:-.3em; border-radius:50%; opacity:0; pointer-events:none;
+                box-shadow:0 0 0 .3em rgba(42,106,247,.18), 0 0 1.6em rgba(42,106,247,.35); }
+  .donut.pulse .glow{ animation:pulse 900ms ease-out; }
+  @keyframes pulse{ 0%{opacity:0; transform:scale(.92)} 35%{opacity:1; transform:scale(1.04)} 100%{opacity:0; transform:scale(1.12)} }
+  .center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .big{ font-size:1.55em; font-weight:600; letter-spacing:-.03em; line-height:1; font-variant-numeric:tabular-nums; }
+  .cap{ margin-top:.45em; font-size:.53em; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; white-space:nowrap; }
+
+  .legend{ list-style:none; margin:.85em 0 0 0; padding:0; }
+  .legend li{ height:2.17em; display:flex; align-items:center; gap:.68em; font-size:.72em; color:var(--ink-soft);
+              opacity:.4; transition:opacity 450ms ease; }
+  .legend li .dot{ width:.6em; height:.6em; }
+  .legend li.lit{ opacity:1; }
+
+  /* right: chapter rows */
+  .rows{ list-style:none; margin:0; padding:.9em 0 0 0; }
+  .row{ height:1.9375em; display:grid; align-items:center;
+        grid-template-columns:11.44em 35.94em 3.81em 3.25em; }
+  .name{ font-size:.74em; font-weight:700; white-space:nowrap; color:var(--name-start); transition:color 500ms ease; }
+  .row.on .name{ color:var(--ink); }
+
+  .bar{ display:flex; gap:.375em; height:.6875em; }
+  .blk{ flex:1; border-radius:.19em; position:relative; overflow:hidden; background:var(--track,transparent); }
+  .blk i{ position:absolute; inset:0; background:var(--fill); transform:scaleX(0); transform-origin:left center;
+          transition:transform var(--block-fill) cubic-bezier(.3,.7,.3,1); }
+  .row.on .blk.f i{ transform:scaleX(1); transition-delay:calc(var(--j) * var(--block-stagger)); }
+  .row.blue{ --fill:var(--blue); --track:var(--blue-track); }
+  .row.red { --fill:var(--red);  --track:var(--red-track); }
+  .row.none .blk{ background:transparent; }
+
+  .pct{ text-align:right; font-size:.78em; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .pct small{ font-size:.66em; font-weight:600; margin-left:.05em; }
+  .delta{ padding-left:2.1em; font-size:.63em; font-weight:700; white-space:nowrap;
+          opacity:0; transform:translateX(-.6em); }
+  .delta.up{ color:var(--green); } .delta.down{ color:var(--red); } .delta.flat{ color:var(--flat); }
+  .delta.in{ animation:deltaIn 520ms cubic-bezier(.34,1.56,.64,1) forwards; }
+  @keyframes deltaIn{ 0%{opacity:0; transform:translateX(-.6em) translateY(.25em)} 60%{opacity:1; transform:translateX(.08em) translateY(-.12em)} 100%{opacity:1; transform:none} }
+
+  /* ---------- reset: everything eases back together ---------- */
+  .resetting .blk i{ transition-duration:var(--reset-ms) !important; transition-delay:0ms !important; }
+  .resetting .name, .resetting .legend li{ transition-duration:var(--reset-ms); }
+  .resetting .delta{ animation:none; opacity:0; transition:opacity calc(var(--reset-ms) * .6) ease; }
+
+  /* ---------- reduced motion ---------- */
+  .static *, .static *::before, .static *::after{ animation:none !important; transition:none !important; }
+  .static .delta{ opacity:1; transform:none; }
+
+  /* ---------- narrow screens: donut stacks above the bars ---------- */
+  @container (max-width: 520px){
+    .card{ font-size:calc(100cqi / 38); }                /* stacked design: 608 px == 38em */
+    .head{ margin:0 1.5em; height:auto; padding:1.1em 0 .9em; flex-direction:column; align-items:flex-start; gap:.6em; }
+    .title{ font-size:.85em; }
+    .key{ font-size:.75em; gap:1.4em; }
+    .body{ margin:0 1.5em; grid-template-columns:1fr; }
+    .left{ display:flex; align-items:center; gap:2em; padding-top:1.2em; }
+    .donut{ margin-left:0; }
+    .legend{ margin:0; }
+    .legend li{ font-size:.85em; }
+    .rows{ padding-top:1em; }
+    .row{ height:2.2em; grid-template-columns:10.5em 1fr 3.4em 3em; }
+    .name{ font-size:.82em; white-space:normal; line-height:1.15; padding-right:.5em; }
+    .pct{ font-size:.82em; } .delta{ padding-left:1.4em; font-size:.68em; }
+  }
+
+  /* ---------- replay ---------- */
+  .replay{
+    font:500 13px/1 "Poppins",system-ui,sans-serif; color:#5a6478; background:#fff;
+    border:1px solid #dfe3eb; border-radius:999px; padding:9px 16px 9px 13px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; box-shadow:0 2px 6px rgba(32,60,120,.06);
+    transition:color .2s, border-color .2s, box-shadow .2s;
+  }
+  .replay:hover{ color:var(--blue); border-color:#c5cfe6; box-shadow:0 3px 10px rgba(32,60,120,.1); }
+  .replay:focus-visible{ outline:2px solid var(--blue); outline-offset:3px; }
+  .replay svg{ width:14px; height:14px; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <section class="card" id="card" aria-label="Standard 9-A, Mathematics, Term 2. Class average 68%. Polynomials 92%, Linear Equations 86%, Coordinate Geometry 68%, Triangles 61%, Surface Areas and Volumes 43%, Statistics and Probability 31%.">
+    <header class="head">
+      <span class="title">Standard 9-A · Mathematics · Term 2</span>
+      <span class="key" aria-hidden="true">
+        <span><i class="dot blue"></i>Strong</span>
+        <span>Holding</span>
+        <span><i class="dot red"></i>Needs practice</span>
+      </span>
+    </header>
+
+    <div class="body" aria-hidden="true">
+      <div class="left">
+        <div class="donut" id="donut">
+          <!-- 122 x 122 box, ring radius 54.5, stroke 12 (2x the reference) -->
+          <svg viewBox="0 0 122 122">
+            <g transform="rotate(-90 61 61)">
+              <circle class="track" cx="61" cy="61" r="54.5"/>
+              <circle class="arc red"  id="arcRed"  cx="61" cy="61" r="54.5"/>
+              <circle class="arc blue" id="arcBlue" cx="61" cy="61" r="54.5"/>
+            </g>
+          </svg>
+          <span class="glow"></span>
+          <div class="center"><span class="big"><span id="avg">68</span>%</span><span class="cap">Class average</span></div>
+        </div>
+        <ul class="legend">
+          <li id="lgStrong"><i class="dot blue"></i><span><b data-n="2" style="font-weight:400">2</b> chapters strong</span></li>
+          <li id="lgHold"><i class="dot none"></i><span><b data-n="2" style="font-weight:400">2</b> holding</span></li>
+          <li id="lgNeed"><i class="dot red"></i><span><b data-n="2" style="font-weight:400">2</b> need practice</span></li>
+        </ul>
+      </div>
+
+      <ol class="rows" id="rows"></ol>
+    </div>
+  </section>
+</div>
+
+<button class="replay" id="replay" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+  Replay
+</button>
+
+<script>
+/* ============================================================
+   Timing (ms). Change these to adjust the speed.
+   ============================================================ */
+const START_DELAY    = 400;   // pause before the first row
+const ROW_STAGGER    = 450;   // gap between each row's start (rows overlap)
+const BLOCK_STAGGER  = 60;    // gap between bar blocks filling
+const BLOCK_FILL     = 260;   // one block's fill
+const COUNT_DURATION = 900;   // each row's % count-up (matches its bar)
+const LEGEND_COUNT   = 420;   // legend numbers 0 -> 2
+const HOLD_TIME      = 2500;  // hold on the finished card
+const RESET_TIME     = 700;   // ease back to zero before looping
+
+/* ============================================================
+   Data
+   fill: solid blocks out of 10 · kind: blue | red | none (no bar shown)
+   ============================================================ */
+const ROWS = [
+  { name:'Polynomials',             pct:92, fill:9, kind:'blue', delta:'▲ 6', dir:'up'   },
+  { name:'Linear Equations',        pct:86, fill:9, kind:'blue', delta:'▲ 3', dir:'up'   },
+  { name:'Coordinate Geometry',     pct:68, fill:0, kind:'none', delta:'– 0', dir:'flat' },
+  { name:'Triangles',               pct:61, fill:0, kind:'none', delta:'▲ 4', dir:'up'   },
+  { name:'Surface Areas & Volumes', pct:43, fill:4, kind:'red',  delta:'▼ 5', dir:'down' },
+  { name:'Statistics & Probability',pct:31, fill:3, kind:'red',  delta:'▼ 8', dir:'down' },
+];
+const AVERAGE = 68;
+/* donut arcs as fractions of the circle, clockwise from 12 o'clock (measured from the reference) */
+const ARC_BLUE = { start:0.000, length:0.452 };   // top -> ~163°
+const ARC_RED  = { start:0.731, length:0.252 };   // ~263° -> just before the top
+
+/* ---------- hand timings to CSS ---------- */
+const rs = document.documentElement.style;
+rs.setProperty('--block-stagger', BLOCK_STAGGER + 'ms');
+rs.setProperty('--block-fill',    BLOCK_FILL + 'ms');
+rs.setProperty('--reset-ms',      RESET_TIME + 'ms');
+
+/* ---------- build rows ---------- */
+const rowsEl = document.getElementById('rows');
+const rowEls = ROWS.map(r => {
+  const li = document.createElement('li');
+  li.className = 'row ' + r.kind;
+  const blocks = Array.from({length:10}, (_, j) =>
+    `<span class="blk${j < r.fill ? ' f' : ''}" style="--j:${j}"><i></i></span>`).join('');
+  li.innerHTML = `<span class="name">${r.name.replace('&','&amp;')}</span>
+                  <span class="bar">${blocks}</span>
+                  <span class="pct"><span class="num">${r.pct}</span><small>%</small></span>
+                  <span class="delta ${r.dir}">${r.delta}</span>`;
+  rowsEl.appendChild(li);
+  return { el:li, num:li.querySelector('.num'), delta:li.querySelector('.delta'), data:r };
+});
+
+/* ---------- donut ---------- */
+const C = 2 * Math.PI * 54.5;                    // circumference
+const arcBlue = document.getElementById('arcBlue');
+const arcRed  = document.getElementById('arcRed');
+const avgEl   = document.getElementById('avg');
+const donutEl = document.getElementById('donut');
+function setArc(el, arc, p){                     // p: 0..1 of this arc's own length
+  const len = Math.max(0.0001, arc.length * p) * C;
+  el.style.strokeDasharray = `${len} ${C}`;
+  el.style.strokeDashoffset = (-arc.start * C).toString();
+  el.style.opacity = p > 0.002 ? 1 : 0;          // hide the round-cap dot at zero
+}
+function setDonut(p){                            // one shared progress value drives ring + number
+  setArc(arcBlue, ARC_BLUE, p);
+  setArc(arcRed,  ARC_RED,  p);
+  avgEl.textContent = Math.round(AVERAGE * p);
+}
+
+/* ---------- legend ---------- */
+const legend = ['lgStrong','lgHold','lgNeed'].map(id => {
+  const li = document.getElementById(id); return { li, n:li.querySelector('[data-n]') };
+});
+
+/* ---------- tiny animation helpers ---------- */
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let runId = 0;                                   // bumps on (re)start so older loops stop
+function tween(duration, onUpdate, id, ease = easeOutCubic){
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    const step = () => {
+      if (id !== runId) return resolve();
+      const t = Math.min(1, (performance.now() - t0) / duration);
+      onUpdate(ease(t));
+      t < 1 ? requestAnimationFrame(step) : resolve();
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+/* ---------- states ---------- */
+function setZero(){
+  rowEls.forEach(r => { r.el.classList.remove('on'); r.num.textContent = '0'; r.delta.classList.remove('in'); });
+  legend.forEach(l => { l.li.classList.remove('lit'); l.n.textContent = '0'; });
+  setDonut(0);
+}
+function setFinal(){
+  rowEls.forEach(r => { r.el.classList.add('on'); r.num.textContent = r.data.pct; r.delta.classList.add('in'); });
+  legend.forEach(l => { l.li.classList.add('lit'); l.n.textContent = l.n.dataset.n; });
+  setDonut(1);
+}
+
+/* one row: name colours, blocks fill left to right, % counts up, delta pops in */
+async function playRow(r, id){
+  r.el.classList.add('on');
+  await tween(COUNT_DURATION, e => r.num.textContent = Math.round(r.data.pct * e), id);
+  if (id !== runId) return;
+  r.delta.classList.add('in');
+}
+
+/* a legend line lights up and counts 0 -> 2 */
+function lightLegend(l, id){
+  l.li.classList.add('lit');
+  return tween(LEGEND_COUNT, e => l.n.textContent = Math.round(+l.n.dataset.n * e), id);
+}
+
+async function play(){
+  const id = ++runId;
+  card.classList.remove('static', 'resetting');
+  setZero();
+  await sleep(START_DELAY); if (id !== runId) return;
+
+  while (id === runId){
+    const total = (ROWS.length - 1) * ROW_STAGGER + COUNT_DURATION;   // the whole cascade
+
+    // donut: one shared progress for the arcs and the 68% counter, spanning the cascade
+    const donut = tween(total, setDonut, id).then(() => {
+      if (id !== runId) return;
+      donutEl.classList.remove('pulse'); void donutEl.offsetWidth; donutEl.classList.add('pulse');
+    });
+
+    // rows cascade, each starting ROW_STAGGER after the previous one
+    const rowsDone = rowEls.map((r, i) => sleep(i * ROW_STAGGER).then(() => id === runId && playRow(r, id)));
+
+    // legend: strong after rows 1-2, holding after rows 3-4, needs practice after rows 5-6
+    const legendDone = [1, 3, 5].map((last, k) =>
+      sleep(last * ROW_STAGGER + COUNT_DURATION).then(() => id === runId && lightLegend(legend[k], id)));
+
+    await Promise.all([donut, ...rowsDone, ...legendDone]); if (id !== runId) return;
+    await sleep(HOLD_TIME); if (id !== runId) return;
+
+    // ease every value back to zero together, then loop
+    card.classList.add('resetting');
+    rowEls.forEach(r => { r.el.classList.remove('on'); r.delta.classList.remove('in'); });
+    legend.forEach(l => l.li.classList.remove('lit'));
+    const from = rowEls.map(r => +r.num.textContent), lgFrom = legend.map(l => +l.n.textContent);
+    await tween(RESET_TIME, e => {
+      rowEls.forEach((r, i) => r.num.textContent = Math.round(from[i] * (1 - e)));
+      legend.forEach((l, i) => l.n.textContent = Math.round(lgFrom[i] * (1 - e)));
+      setDonut(1 - e);
+    }, id, t => t * t * (3 - 2 * t));
+    if (id !== runId) return;
+    card.classList.remove('resetting');
+    donutEl.classList.remove('pulse');
+    await sleep(START_DELAY); if (id !== runId) return;
+  }
+}
+
+/* ---------- reduced motion: finished card, no movement ---------- */
+const card = document.getElementById('card');
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+function showStatic(){ runId++; card.classList.add('static'); setFinal(); }
+
+document.getElementById('replay').addEventListener('click', () => reduce.matches ? showStatic() : play());
+if (reduce.matches) showStatic(); else play();
+</script>
+</body>
+</html>
