@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exam Process Timeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     Colours (picked from assets/process.png)
+     ============================================================ */
+  :root{
+    --page:#f6f8fd;
+    --card:#ffffff;
+    --card-line:#eef0f5;
+    --dot:#d9dde4;
+
+    --peach:#fde3d8;          /* circle fill + connector */
+    --blue:#1e3fae;           /* circle number */
+    --ink:#3a3d46;            /* step title */
+
+    --grey-bg:#d9d9d9;        /* circle, initial state */
+    --grey-num:#9a9a9a;
+    --grey-text:#c3c4c8;
+    --grey-line:#e4e4e4;
+
+    --tag-ink:#4b5262;
+    --tag-line:#e3e6ec;
+    --tag-blue-bg:#e4ecfc;  --tag-blue-ink:#2a54c8;
+    --tag-hot-bg:#ff6b4f;   --tag-hot-ink:#ffffff;
+    --tag-green-bg:#e3f4e6; --tag-green-ink:#2f8a43;
+
+    /* timing, written by the script from the constants at the top of <script> */
+    --circle-ms:520ms; --text-ms:700ms; --line-ms:600ms; --chip-ms:520ms; --reset-ms:700ms;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh; background:var(--page);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+    padding:24px 16px; font-family:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+
+  /* ============================================================
+     Card. Everything inside is sized in em and the card's font-size
+     follows its container width, so the whole card scales as one.
+     Design size: 620 px wide (2x the reference image).
+     ============================================================ */
+  .stage{ width:min(100%,620px); container-type:inline-size; }
+  .card{
+    font-size:calc(100cqi / 38.75);          /* 38.75em == 620px at full size */
+    width:38.75em; background:var(--card); border-radius:1.05em;
+    border:1px solid var(--card-line);
+    box-shadow:0 1.1em 2.6em rgba(44,72,140,.12), 0 .15em .45em rgba(44,72,140,.06);
+    overflow:hidden;
+  }
+  .bar{ height:2.85em; display:flex; align-items:center; gap:.55em; padding-left:1.3em; background:#f5f7fb; border-bottom:1px solid var(--card-line); }
+  .bar i{ width:.62em; height:.62em; border-radius:50%; background:var(--dot); display:block; }
+
+  .steps{ list-style:none; margin:0; padding:.85em 2.4em 2.55em 2.2em; position:relative; }
+  .step{
+    position:relative; height:4.2em;
+    display:grid; grid-template-columns:2.75em 1fr auto; align-items:center; column-gap:.95em;
+  }
+
+  /* ---------- number circle ---------- */
+  .num{ position:relative; width:2.75em; height:2.75em; border-radius:50%; background:var(--grey-bg);
+        display:grid; place-items:center; z-index:2; }
+  .num::before{                     /* peach fill layer (opacity/transform only) */
+    content:""; position:absolute; inset:0; border-radius:50%; background:var(--peach);
+    opacity:0; transform:scale(.35); transition:opacity var(--circle-ms) ease, transform var(--circle-ms) cubic-bezier(.34,1.56,.64,1);
+  }
+  .num::after{                      /* ripple ring */
+    content:""; position:absolute; inset:-.15em; border-radius:50%; border:.18em solid #fbc7b3;
+    opacity:0; transform:scale(.8); pointer-events:none;
+  }
+  .num b{ position:relative; font-weight:700; font-size:1.22em; color:var(--grey-num); transition:color var(--circle-ms) ease; }
+
+  .on .num{ animation:pop var(--circle-ms) cubic-bezier(.34,1.56,.64,1); }
+  .on .num::before{ opacity:1; transform:scale(1); }
+  .on .num::after{ animation:ripple 900ms ease-out; }
+  .on .num b{ color:var(--blue); }
+  @keyframes pop{ 0%{transform:scale(1)} 45%{transform:scale(1.25)} 100%{transform:scale(1)} }
+  @keyframes ripple{ 0%{opacity:.85; transform:scale(.85)} 100%{opacity:0; transform:scale(1.9)} }
+
+  /* ---------- connector between circles ---------- */
+  .seg{ position:absolute; left:calc(1.375em - 1.5px); top:calc(50% + 1.375em); width:3px; height:calc(4.2em - 2.75em);
+        background:var(--grey-line); z-index:1; }
+  .seg::after{ content:""; position:absolute; inset:0; background:#fbcfbe; transform:scaleY(0); transform-origin:top;
+               transition:transform var(--line-ms) cubic-bezier(.45,0,.2,1); }
+  .on .seg::after{ transform:scaleY(1); transition-delay:calc(var(--circle-ms) * .45); }
+
+  /* ---------- title: painted left to right ---------- */
+  .title{
+    font-weight:500; font-size:.94em; line-height:1.2; align-self:center; margin-top:-.15em; white-space:nowrap;
+    color:transparent; -webkit-background-clip:text; background-clip:text;
+    background-image:linear-gradient(90deg, var(--ink) 0 48%, var(--grey-text) 52% 100%);
+    background-size:210% 100%; background-position:100% 0;
+    transition:background-position var(--text-ms) cubic-bezier(.5,0,.2,1);
+  }
+  .on .title{ background-position:0 0; }
+
+  /* ---------- chip card ---------- */
+  .chipwrap{ position:relative; }
+  .chip{
+    display:flex; align-items:center; gap:.3em; padding:.6em .62em; min-width:10.5em;
+    background:#fff; border-radius:.42em; box-shadow:0 .3em 1em rgba(32,60,120,.16), 0 0 0 1px rgba(32,60,120,.05);
+    opacity:.15; transform:translateX(1.25em) scale(.96); transform-origin:right center;
+    transition:opacity var(--chip-ms) ease, transform var(--chip-ms) cubic-bezier(.22,1,.36,1);
+  }
+  .on .chip{ opacity:1; transform:none; transition-delay:120ms; }
+
+  .tag{
+    position:relative; overflow:hidden; display:inline-flex; align-items:center; white-space:nowrap;
+    font-size:.55em; font-weight:600; line-height:1; padding:.68em .78em; border-radius:.55em;
+    color:var(--tag-ink); background:#fff; border:1px solid var(--tag-line);
+    opacity:0; transform:scale(.6);
+    transition:opacity 260ms ease, transform 360ms cubic-bezier(.34,1.56,.64,1);
+    transition-delay:calc(220ms + var(--i,0) * var(--stagger,80ms));
+  }
+  .on .tag{ opacity:1; transform:none; }
+  .tag.blue { background:var(--tag-blue-bg);  color:var(--tag-blue-ink);  border-color:transparent; }
+  .tag.hot  { background:var(--tag-hot-bg);   color:var(--tag-hot-ink);   border-color:transparent; }
+  .tag.green{ background:var(--tag-green-bg); color:var(--tag-green-ink); border-color:transparent; }
+
+  /* side slot for each step's little graphic (sits left of the chip, transient) */
+  .fx{ position:absolute; right:100%; top:50%; margin-right:.9em; transform:translateY(-50%);
+       display:flex; align-items:center; gap:.3em; pointer-events:none; }
+  .fx svg{ display:block; }
+
+  /* --- step 1: book slides across, CBSE gets a highlight sweep --- */
+  .fx-book{ width:1.35em; height:1.35em; opacity:0; }
+  .on .fx-book{ animation:bookSlide 1100ms cubic-bezier(.3,0,.2,1) 250ms both; }
+  @keyframes bookSlide{ 0%{opacity:0; transform:translateX(-2.2em)} 30%{opacity:1} 70%{opacity:1; transform:translateX(0)} 100%{opacity:0; transform:translateX(.4em)} }
+  .tag.sweep::after{ content:""; position:absolute; inset:0; transform:translateX(-120%);
+    background:linear-gradient(100deg, transparent 20%, rgba(255,255,255,.95) 50%, transparent 80%); }
+  .on .tag.sweep::after{ animation:sweep 700ms ease-out 650ms; }
+  @keyframes sweep{ to{ transform:translateX(120%) } }
+
+  /* --- step 2: MCQ option boxes pop and tick one after another --- */
+  .fx-box{ width:1em; height:1em; opacity:0; transform:scale(.3); }
+  .fx-box path{ stroke-dasharray:12; stroke-dashoffset:12; }
+  .on .fx-box{ animation:boxPop 1250ms cubic-bezier(.34,1.56,.64,1) both; animation-delay:calc(200ms + var(--i) * 140ms); }
+  .on .fx-box path{ animation:draw 260ms ease-out forwards; animation-delay:calc(380ms + var(--i) * 140ms); }
+  @keyframes boxPop{ 0%{opacity:0; transform:scale(.3)} 22%{opacity:1; transform:scale(1)} 80%{opacity:1; transform:scale(1)} 100%{opacity:0; transform:scale(.9)} }
+  @keyframes draw{ to{ stroke-dashoffset:0 } }
+
+  /* --- step 3: pencil runs across "Q4 edited", the tick in "Key" draws itself --- */
+  .pencil{ position:absolute; left:0; top:-.95em; width:1.1em; height:1.1em; opacity:0; z-index:3; pointer-events:none; }
+  .on .pencil{ animation:pencil 1000ms ease-in-out 300ms both; }
+  @keyframes pencil{ 0%{opacity:0; transform:translateX(-.2em) rotate(-8deg)} 15%{opacity:1}
+                     50%{transform:translateX(1.6em) rotate(6deg)} 85%{opacity:1; transform:translateX(3.2em) rotate(-4deg)} 100%{opacity:0; transform:translateX(3.6em)} }
+  .tick{ width:1em; height:1em; margin-left:.3em; }
+  .tick path{ stroke-dasharray:14; stroke-dashoffset:14; transition:stroke-dashoffset 420ms ease-out; }
+  .on .tick path{ stroke-dashoffset:0; transition-delay:620ms; }
+
+  /* --- step 4: clock hand turns, "Live" pulses with a blinking dot --- */
+  .fx-clock{ width:1.35em; height:1.35em; opacity:0; }
+  .fx-clock .hand{ transform-origin:12px 12px; }
+  .on .fx-clock{ animation:fadeInOut 1300ms ease 200ms both; }
+  .on .fx-clock .hand{ animation:spin 1000ms cubic-bezier(.5,0,.3,1) 250ms both; }
+  @keyframes spin{ from{transform:rotate(0)} to{transform:rotate(360deg)} }
+  @keyframes fadeInOut{ 0%{opacity:0; transform:scale(.6)} 20%{opacity:1; transform:scale(1)} 80%{opacity:1} 100%{opacity:0} }
+  .live-dot{ width:.5em; height:.5em; border-radius:50%; background:#fff; display:inline-block; margin-right:.35em; }
+  .on .tag.live{ animation:livePulse 900ms ease-out 560ms 2; }
+  .on .live-dot{ animation:blink 1s steps(2,jump-none) 560ms infinite; }
+  @keyframes livePulse{ 0%{box-shadow:0 0 0 0 rgba(255,107,79,.55)} 100%{box-shadow:0 0 0 .7em rgba(255,107,79,0)} }
+  @keyframes blink{ 50%{opacity:.25} }
+
+  /* --- step 5: attempt progress fills to 12/20, "Saved" gets a tick --- */
+  .fx-bar{ width:3.4em; height:.4em; border-radius:1em; background:#e8ebf1; overflow:hidden; opacity:0; }
+  .fx-bar i{ display:block; height:100%; background:linear-gradient(90deg,#57c26b,#2f8a43); transform:scaleX(0); transform-origin:left; border-radius:1em; }
+  .on .fx-bar{ animation:fadeInOut 1350ms ease 150ms both; }
+  .on .fx-bar i{ animation:fill12 900ms cubic-bezier(.3,0,.2,1) 250ms both; }
+  @keyframes fill12{ to{ transform:scaleX(.6) } }       /* 12 / 20 */
+  .save-tick{ position:absolute; left:-.55em; top:-.55em; width:1.15em; height:1.15em; opacity:0; z-index:3; }
+  .save-tick path{ stroke-dasharray:14; stroke-dashoffset:14; }
+  .on .save-tick{ animation:fadeInOut 1100ms ease 300ms both; }
+  .on .save-tick path{ animation:draw 320ms ease-out 420ms forwards; }
+  .on .tag.saved{ animation:tagBounce 420ms cubic-bezier(.34,1.56,.64,1) 380ms; }
+  @keyframes tagBounce{ 0%{transform:scale(1)} 50%{transform:scale(1.14)} 100%{transform:scale(1)} }
+
+  /* --- step 6: 92% counts up, the arrow bounces, confetti from "Done" --- */
+  .arrow{ display:inline-block; }
+  .on .arrow{ animation:bounceUp 600ms cubic-bezier(.34,1.56,.64,1) 700ms; }
+  @keyframes bounceUp{ 0%{transform:translateY(0)} 45%{transform:translateY(-.55em)} 100%{transform:translateY(0)} }
+  .confetti{ position:absolute; width:.32em; height:.32em; border-radius:50%; pointer-events:none; z-index:4; }
+
+  /* ---------- reset: everything fades back to grey together ---------- */
+  .resetting .num::before,.resetting .num b,.resetting .title,.resetting .chip,.resetting .tag,.resetting .seg::after{
+    transition-duration:var(--reset-ms) !important; transition-delay:0ms !important;
+  }
+
+  /* ---------- reduced motion: final state, no movement ---------- */
+  .static *, .static *::before, .static *::after{ animation:none !important; transition:none !important; }
+  .static .fx, .static .pencil, .static .save-tick, .static .live-dot{ display:none; }
+
+  /* ---------- replay ---------- */
+  .replay{
+    font:500 13px/1 "Poppins",system-ui,sans-serif; color:#5a6478; background:#fff;
+    border:1px solid #dfe3eb; border-radius:999px; padding:9px 16px 9px 13px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; box-shadow:0 2px 6px rgba(32,60,120,.06);
+    transition:color .2s, border-color .2s, box-shadow .2s;
+  }
+  .replay:hover{ color:var(--blue); border-color:#c5cfe6; box-shadow:0 3px 10px rgba(32,60,120,.1); }
+  .replay:focus-visible{ outline:2px solid var(--blue); outline-offset:3px; }
+  .replay svg{ width:14px; height:14px; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="card" id="card" role="img" aria-label="Six steps: choose the syllabus, pick the question types, review and edit, schedule and assign, students attempt it, results and analytics.">
+    <div class="bar" aria-hidden="true"><i></i><i></i><i></i></div>
+
+    <ol class="steps" aria-hidden="true">
+      <!-- 1 -->
+      <li class="step">
+        <span class="num"><b>1</b></span>
+        <span class="title">Choose the syllabus</span>
+        <div class="chipwrap">
+          <div class="fx">
+            <svg class="fx-book" viewBox="0 0 24 24" fill="none" stroke="#1e3fae" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7.5h8M8 11h6"/>
+            </svg>
+          </div>
+          <div class="chip">
+            <span class="tag blue sweep" style="--i:0">CBSE</span>
+            <span class="tag blue" style="--i:1">Std 9</span>
+            <span class="tag" style="--i:2">Maths</span>
+          </div>
+        </div>
+        <span class="seg"></span>
+      </li>
+      <!-- 2 -->
+      <li class="step">
+        <span class="num"><b>2</b></span>
+        <span class="title">Pick the question types</span>
+        <div class="chipwrap">
+          <div class="fx">
+            <svg class="fx-box" style="--i:0" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="#fff" stroke="#1e3fae" stroke-width="1.5"/><path d="M4.6 8.2l2.2 2.2 4.6-4.8" stroke="#ff6b4f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="fx-box" style="--i:1" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="#fff" stroke="#1e3fae" stroke-width="1.5"/><path d="M4.6 8.2l2.2 2.2 4.6-4.8" stroke="#ff6b4f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="fx-box" style="--i:2" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="#fff" stroke="#1e3fae" stroke-width="1.5"/><path d="M4.6 8.2l2.2 2.2 4.6-4.8" stroke="#ff6b4f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="chip">
+            <span class="tag hot" style="--i:0">MCQ ×10</span>
+            <span class="tag" style="--i:1">Case study</span>
+          </div>
+        </div>
+        <span class="seg"></span>
+      </li>
+      <!-- 3 -->
+      <li class="step">
+        <span class="num"><b>3</b></span>
+        <span class="title">Review and edit</span>
+        <div class="chipwrap">
+          <div class="chip">
+            <span class="tag blue" style="--i:0;overflow:visible">Q4 edited
+              <svg class="pencil" viewBox="0 0 24 24" fill="none" stroke="#1e3fae" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3.5l4 4L8 20l-5 1 1-5z" fill="#fff"/><path d="M14 6l4 4"/></svg>
+            </span>
+            <span class="tag" style="--i:1">Key
+              <svg class="tick" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 4.8" stroke="#3b4150" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+        </div>
+        <span class="seg"></span>
+      </li>
+      <!-- 4 -->
+      <li class="step">
+        <span class="num"><b>4</b></span>
+        <span class="title">Schedule and assign</span>
+        <div class="chipwrap">
+          <div class="fx">
+            <svg class="fx-clock" viewBox="0 0 24 24" fill="none" stroke="#1e3fae" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="12" cy="12" r="9.5" fill="#fff"/><path d="M12 7v5" opacity=".45"/><g class="hand"><path d="M12 12l4.2 2.6"/></g><circle cx="12" cy="12" r="1.2" fill="#1e3fae" stroke="none"/>
+            </svg>
+          </div>
+          <div class="chip">
+            <span class="tag blue" style="--i:0">10-B</span>
+            <span class="tag" style="--i:1">40 min</span>
+            <span class="tag hot live" style="--i:2"><span class="live-dot"></span>Live</span>
+          </div>
+        </div>
+        <span class="seg"></span>
+      </li>
+      <!-- 5 -->
+      <li class="step">
+        <span class="num"><b>5</b></span>
+        <span class="title">Students attempt it</span>
+        <div class="chipwrap">
+          <div class="fx"><span class="fx-bar"><i></i></span></div>
+          <div class="chip">
+            <span class="tag green saved" style="--i:0;overflow:visible">Saved
+              <svg class="save-tick" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" fill="#2f8a43"/><path d="M5.2 9.3l2.5 2.5 5-5.2" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="tag" style="--i:1"><span data-count="12">12</span>&nbsp;/&nbsp;20</span>
+          </div>
+        </div>
+        <span class="seg"></span>
+      </li>
+      <!-- 6 -->
+      <li class="step">
+        <span class="num"><b>6</b></span>
+        <span class="title">Results and analytics</span>
+        <div class="chipwrap">
+          <div class="chip">
+            <span class="tag blue" style="--i:0"><span data-count="92">92</span>%</span>
+            <span class="tag green" style="--i:1"><span class="arrow">▲</span>&nbsp;6</span>
+            <span class="tag done" style="--i:2">Done</span>
+          </div>
+        </div>
+      </li>
+    </ol>
+  </div>
+</div>
+
+<button class="replay" id="replay" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+  Replay
+</button>
+
+<script>
+/* ============================================================
+   Timing (ms). Change these to adjust the speed.
+   ============================================================ */
+const START_DELAY  = 500;    // pause before step 1
+const STEP_MS      = 1400;   // one step, start to finish; the next starts after this
+const CIRCLE_MS    = 520;    // grey -> peach fill and the pop
+const TEXT_MS      = 700;    // title "paint" sweep
+const LINE_MS      = 600;    // connector growing to the next circle
+const CHIP_MS      = 520;    // chip card sliding in
+const TAG_STAGGER  = 80;     // delay between tags popping in
+const COUNT_MS     = 900;    // number count-ups (12 / 20, 92%)
+const HOLD_MS      = 2000;   // hold on the finished state
+const RESET_MS     = 700;    // fade back to grey before looping
+
+/* hand the timings to CSS */
+const rootStyle = document.documentElement.style;
+rootStyle.setProperty('--circle-ms', CIRCLE_MS + 'ms');
+rootStyle.setProperty('--text-ms',   TEXT_MS + 'ms');
+rootStyle.setProperty('--line-ms',   LINE_MS + 'ms');
+rootStyle.setProperty('--chip-ms',   CHIP_MS + 'ms');
+rootStyle.setProperty('--reset-ms',  RESET_MS + 'ms');
+rootStyle.setProperty('--stagger',   TAG_STAGGER + 'ms');
+
+const card  = document.getElementById('card');
+const steps = [...card.querySelectorAll('.step')];
+const counters = [...card.querySelectorAll('[data-count]')];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+let runId = 0;   // bumps on every (re)start so an older loop stops itself
+
+/* count a number up from 0 with ease-out */
+function countUp(el, to, delay, id){
+  const start = performance.now() + delay;
+  const tick = now => {
+    if (id !== runId) return;
+    const t = Math.min(1, Math.max(0, (now - start) / COUNT_MS));
+    el.textContent = Math.round(to * (1 - Math.pow(1 - t, 3)));
+    if (t < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+/* small dots bursting out of the "Done" tag */
+function confetti(row, id){
+  const done = row.querySelector('.tag.done');
+  const wrap = row.querySelector('.chipwrap');
+  const colors = ['#ff6b4f','#2a54c8','#57c26b','#f7b733','#fbc7b3'];
+  const w = wrap.getBoundingClientRect(), d = done.getBoundingClientRect();
+  const k = card.getBoundingClientRect().width / 620;          // current scale of the card
+  const cx = (d.left - w.left + d.width / 2) / k, cy = (d.top - w.top + d.height / 2) / k;
+  for (let i = 0; i < 12; i++){
+    const s = document.createElement('span');
+    s.className = 'confetti';
+    s.style.background = colors[i % colors.length];
+    s.style.left = `calc(${cx}em / 16 - .16em)`; s.style.top = `calc(${cy}em / 16 - .16em)`;
+    wrap.appendChild(s);
+    const a = (i / 12) * Math.PI * 2 + Math.random() * .4, r = 1.6 + Math.random() * 1.4;
+    s.animate([
+      { transform:'translate(0,0) scale(.6)', opacity:1 },
+      { transform:`translate(${Math.cos(a)*r}em, ${Math.sin(a)*r - .6}em) scale(1)`, opacity:1, offset:.6 },
+      { transform:`translate(${Math.cos(a)*r*1.2}em, ${Math.sin(a)*r + .4}em) scale(.4)`, opacity:0 }
+    ], { duration:900 + Math.random()*300, easing:'cubic-bezier(.2,.7,.3,1)', delay:900 }).onfinish = () => s.remove();
+  }
+}
+
+/* step-specific extras that need script (the rest is CSS keyed off .on) */
+const extras = {
+  4: (row, id) => countUp(row.querySelector('[data-count]'), 12, 250, id),       // 12 / 20 with the progress bar
+  5: (row, id) => { countUp(row.querySelector('[data-count]'), 92, 300, id); confetti(row, id); }
+};
+
+function resetToGrey(){
+  steps.forEach(s => s.classList.remove('on'));
+  card.querySelectorAll('.confetti').forEach(c => c.remove());
+}
+
+async function play(){
+  const id = ++runId;
+  resetToGrey();
+  counters.forEach(c => c.textContent = '0');
+  await sleep(START_DELAY); if (id !== runId) return;
+
+  while (id === runId){
+    for (let i = 0; i < steps.length; i++){
+      steps[i].classList.add('on');
+      if (extras[i]) extras[i](steps[i], id);
+      await sleep(STEP_MS); if (id !== runId) return;
+    }
+    await sleep(HOLD_MS); if (id !== runId) return;
+
+    card.classList.add('resetting');           // everything fades back together
+    resetToGrey();
+    await sleep(RESET_MS); if (id !== runId) return;
+    card.classList.remove('resetting');
+    counters.forEach(c => c.textContent = '0');
+    await sleep(START_DELAY); if (id !== runId) return;
+  }
+}
+
+/* reduced motion: show the finished, fully coloured card */
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+function showStatic(){
+  runId++;
+  card.classList.add('static');
+  steps.forEach(s => s.classList.add('on'));
+  counters.forEach(c => c.textContent = c.dataset.count);
+}
+
+document.getElementById('replay').addEventListener('click', () => {
+  if (reduce.matches) return showStatic();
+  card.classList.remove('static', 'resetting');
+  play();
+});
+
+if (reduce.matches) showStatic(); else play();
+</script>
+</body>
+</html>
