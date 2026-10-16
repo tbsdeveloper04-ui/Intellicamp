@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intellicamp – Thanks for Joining</title>
+<style>
+  /* ============================================================
+     Colours
+     ============================================================ */
+  :root{
+    --page-top:#ffffff;
+    --page-bottom:#eef4fe;
+    --flash-core:rgba(255,255,255,.95);
+    --flash-ring:rgba(150,185,255,.55);
+    --doodle-shadow:rgba(50,80,190,.25);
+    --btn-text:#4a5878;
+    --btn-border:rgba(80,110,200,.22);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    padding:24px 16px; background:linear-gradient(var(--page-top), var(--page-bottom));
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+
+  /* ============================================================
+     Scene. Everything is laid out on the 1200 x 760 design canvas.
+     1 design unit = 100cqw / 1200, so the whole scene scales together.
+     ============================================================ */
+  .stage{ width:min(100%, 720px); container-type:inline-size; }
+  .scene{
+    position:relative; width:100%; aspect-ratio:1200 / 760; overflow:hidden;
+    background:url("assets/background.png") center / 100% 100% no-repeat;
+  }
+  .layer{ position:absolute; display:block; will-change:transform, opacity; }
+  .layer img, img.layer{ width:100%; height:100%; display:block; user-select:none; -webkit-user-drag:none; }
+  .stack{ position:absolute; inset:0; will-change:transform; }
+
+  /* Idle: the stack floats, its shadow breathes the other way, doodles drift */
+  .idle .stack{ animation:float 3.5s ease-in-out infinite; }
+  .idle .shadow{ animation:shadowFloat 3.5s ease-in-out infinite; }
+  @keyframes float{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(calc(100cqw / 1200 * -14)) } }
+  @keyframes shadowFloat{ 0%,100%{ transform:scale(1); opacity:1 } 50%{ transform:scale(.9); opacity:.72 } }
+  .idle .doodle{ animation:drift var(--drift,3s) ease-in-out infinite; }
+  @keyframes drift{
+    0%,100%{ transform:translate(0,0) }
+    33%{ transform:translate(calc(100cqw / 1200 * var(--dx,5)), calc(100cqw / 1200 * var(--dy,-5))) }
+    66%{ transform:translate(calc(100cqw / 1200 * var(--dx,5) * -.6), calc(100cqw / 1200 * var(--dy,-5) * -.4)) }
+  }
+  .doodle img{ transform-origin:50% 50%; }
+  .doodle.wobble img{ animation:wobble 400ms ease-in-out; }
+  @keyframes wobble{ 0%,100%{ transform:rotate(0) } 30%{ transform:rotate(2deg) } 70%{ transform:rotate(-2deg) } }
+
+  /* Light flash from the envelope's opening */
+  .flash{
+    position:absolute; border-radius:50%; pointer-events:none; opacity:0; will-change:transform, opacity;
+    background:radial-gradient(circle, var(--flash-core) 0%, rgba(235,243,255,.75) 28%, var(--flash-ring) 52%, rgba(150,185,255,0) 72%);
+  }
+
+  /* Rocket-flame trail: a tapered streak, thick at the doodle, thin at the tail */
+  .trail{
+    position:absolute; left:0; top:0; transform-origin:0 50%; pointer-events:none; will-change:transform, opacity;
+    clip-path:polygon(0 8%, 100% 42%, 100% 58%, 0 92%);
+    border-radius:50%;
+    background:linear-gradient(90deg, #fff 0%, var(--c) 22%, var(--c) 45%, transparent 100%);
+    filter:blur(calc(100cqw / 1200 * 10)) drop-shadow(0 0 calc(100cqw / 1200 * 14) var(--glow));
+  }
+  .spark{ position:absolute; left:0; top:0; border-radius:50%; pointer-events:none; will-change:transform, opacity; }
+
+  /* Reduced motion: no animation at all */
+  .static *{ animation:none !important; transition:none !important; }
+
+  /* Replay */
+  .replay{
+    font:500 13px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--btn-text);
+    background:rgba(255,255,255,.7); border:1px solid var(--btn-border); border-radius:999px;
+    padding:9px 16px 9px 13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+    backdrop-filter:blur(6px); box-shadow:0 2px 8px rgba(40,70,160,.08); transition:background .2s, color .2s;
+  }
+  .replay:hover{ background:#fff; color:#3150c8; }
+  .replay:focus-visible{ outline:2px solid #3150c8; outline-offset:3px; }
+  .replay svg{ width:14px; height:14px; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="scene" id="scene" role="img" aria-label="Intellicamp. Thanks for joining us! Three envelopes fan out and maths doodles pop out of them."></div>
+</div>
+
+<button class="replay" id="replay" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+  Replay
+</button>
+
+<script>
+/* ============================================================
+   Timings (ms) and sizes. Tweak these to change the feel.
+   ============================================================ */
+const START_DELAY        = 350;   // pause on the empty background
+const ENVELOPE_GAP       = 600;   // gap between envelope entries
+const ENVELOPE_DURATION  = 900;   // one envelope's entry
+const DOODLE_STAGGER     = 120;   // gap between doodle launches
+const DOODLE_FLIGHT_TIME = 1000;  // one doodle's flight
+const TRAIL_LENGTH       = 170;   // trail length at launch (design units, canvas is 1200 wide)
+const HOLD_TIME          = 3000;  // float on the finished scene
+const FADE_TIME          = 600;   // fade out before looping
+const SPRING      = 'cubic-bezier(0.34, 1.56, 0.64, 1)';   // overshoot (front envelope)
+const SMOOTH_OUT  = 'cubic-bezier(0.22, 1, 0.36, 1)';      // no overshoot (back envelopes slide out from behind)
+
+/* ============================================================
+   Layers: file, x, y, w, h on the 1200 x 760 canvas, z-index.
+   Positions were measured by matching each PNG against the design.
+   ============================================================ */
+const LAYERS = {
+  SHADOW:            { file:'assets/layers/shadow.png',            x:395.9, y:453.9, w:400, h:90,  z:1 },
+  ENV3:              { file:'assets/layers/env3-back.png',         x:394,   y:164,   w:370, h:370, z:2 },
+  ENV2:              { file:'assets/layers/env2-middle.png',       x:394,   y:164,   w:370, h:370, z:3 },
+  ENV1:              { file:'assets/layers/env1-front.png',        x:394,   y:164,   w:370, h:370, z:4 },
+  DOODLE_PROTRACTOR: { file:'assets/layers/doodle-protractor.png', x:762,   y:266,   w:86,  h:67,  z:7, color:'#ffb800', glow:'rgba(255,184,0,.5)'   },
+  DOODLE_A:          { file:'assets/layers/doodle-a.png',          x:653,   y:165,   w:95,  h:55,  z:7, color:'#ec2a12', glow:'rgba(236,42,18,.5)'   },
+  DOODLE_SQRT:       { file:'assets/layers/doodle-sqrt.png',       x:405,   y:227,   w:94,  h:79,  z:7, color:'#1d7cf2', glow:'rgba(29,124,242,.5)'  },
+  DOODLE_E:          { file:'assets/layers/doodle-emc2.png',       x:323,   y:379,   w:66,  h:61,  z:7, color:'#ff6a2b', glow:'rgba(255,106,43,.5)'  },
+  DOODLE_PYRAMID:    { file:'assets/layers/doodle-pyramid.png',    x:761,   y:416,   w:47,  h:50,  z:7, color:'#6b74c9', glow:'rgba(90,100,190,.45)' },
+};
+const DOODLE_ORDER = ['DOODLE_PROTRACTOR','DOODLE_A','DOODLE_SQRT','DOODLE_E','DOODLE_PYRAMID'];
+const SLIDE_OFFSET = { x:70, y:0 };    // how far a back envelope starts tucked behind the one in front
+const OPENING      = { x:632, y:368 }; // front envelope's opening (flap tip): flash + doodle launch point
+const W = 1200, H = 760;
+
+/* ---------- helpers ---------- */
+const U = n => `calc(100cqw / ${W} * ${n})`;                 // design units -> CSS length
+const pct = (v, of) => (v / of * 100) + '%';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const rand = (a, b) => a + Math.random() * (b - a);
+
+/* ---------- build the scene ---------- */
+const scene = document.getElementById('scene');
+function place(el, L){
+  Object.assign(el.style, { left:pct(L.x, W), top:pct(L.y, H), width:pct(L.w, W), height:pct(L.h, H), zIndex:L.z });
+}
+function makeImg(L){ const i = new Image(); i.src = L.file; i.alt = ''; i.draggable = false; return i; }
+
+const shadow = document.createElement('div'); shadow.className = 'layer shadow'; place(shadow, LAYERS.SHADOW);
+shadow.appendChild(makeImg(LAYERS.SHADOW)); scene.appendChild(shadow);
+
+const stack = document.createElement('div'); stack.className = 'stack'; stack.style.zIndex = 2; scene.appendChild(stack);
+const env = {};
+['ENV3','ENV2','ENV1'].forEach(k => { const i = makeImg(LAYERS[k]); i.className = 'layer'; place(i, LAYERS[k]); stack.appendChild(i); env[k] = i; });
+
+const flash = document.createElement('div'); flash.className = 'flash';
+Object.assign(flash.style, { left:pct(OPENING.x - 160, W), top:pct(OPENING.y - 160, H), width:pct(320, W), height:pct(320, H), zIndex:5 });
+scene.appendChild(flash);
+
+const fx = document.createElement('div'); fx.style.cssText = 'position:absolute;inset:0;z-index:6;pointer-events:none'; scene.appendChild(fx);
+
+const doodles = DOODLE_ORDER.map((k, n) => {
+  const L = LAYERS[k];
+  const wrap = document.createElement('div'); wrap.className = 'layer doodle'; place(wrap, L);
+  wrap.style.setProperty('--drift', (2.6 + n * 0.45) + 's');
+  wrap.style.setProperty('--dx', [5,-6,4,-5,6][n]); wrap.style.setProperty('--dy', [-5,4,-6,5,-4][n]);
+  const img = makeImg(L); wrap.appendChild(img); scene.appendChild(wrap);
+  const trail = document.createElement('div'); trail.className = 'trail';
+  trail.style.setProperty('--c', L.color); trail.style.setProperty('--glow', L.glow); trail.style.opacity = 0;
+  fx.appendChild(trail);
+  return { key:k, L, wrap, img, trail, cx:L.x + L.w / 2, cy:L.y + L.h / 2 };
+});
+
+/* ---------- states ---------- */
+let runId = 0;
+const running = new Set();                  // WAAPI animations (kept until cancelled: their fill keeps applying even after they finish)
+function anim(el, frames, opts){ const a = el.animate(frames, { fill:'forwards', ...opts }); running.add(a); return a; }
+function cancelAll(){ running.forEach(a => a.cancel()); running.clear(); fx.querySelectorAll('.spark').forEach(s => s.remove()); }
+
+function setEmpty(){
+  scene.classList.remove('idle');
+  shadow.style.opacity = .22; shadow.style.transform = 'scale(.7)';
+  Object.values(env).forEach(e => { e.style.opacity = 0; e.style.transform = ''; e.style.filter = ''; });
+  stack.style.transform = '';
+  doodles.forEach(d => { d.wrap.style.opacity = 0; d.wrap.style.transform = ''; d.img.style.transform = ''; d.img.style.filter = ''; d.wrap.classList.remove('wobble'); d.trail.style.opacity = 0; });
+  flash.style.opacity = 0;
+}
+function setFinal(){
+  shadow.style.opacity = 1; shadow.style.transform = 'scale(1)';
+  Object.values(env).forEach(e => { e.style.opacity = 1; e.style.transform = ''; });
+  doodles.forEach(d => { d.wrap.style.opacity = 1; d.wrap.style.transform = ''; d.img.style.transform = ''; d.img.style.filter = ''; d.trail.style.opacity = 0; });
+}
+
+/* ---------- Phase 1: the front envelope drops in ---------- */
+function enterFront(){
+  env.ENV1.style.opacity = 1;
+  anim(env.ENV1, [
+    { opacity:0, transform:`translate(${U(-40)}, ${U(-60)}) scale(.92)` },
+    { opacity:1, transform:'translate(0,0) scale(1)' }
+  ], { duration:ENVELOPE_DURATION, easing:SPRING });
+  anim(shadow, [{ opacity:.22, transform:'scale(.7)' }, { opacity:.7, transform:'scale(.84)' }], { duration:ENVELOPE_DURATION, easing:SMOOTH_OUT });
+}
+
+/* ---------- Phases 2-3: a back envelope slides out from behind the one in front ---------- */
+function slideOut(el, shadowTo){
+  el.style.opacity = 1;
+  anim(el, [
+    { opacity:0,  transform:`translate(${U(SLIDE_OFFSET.x)}, ${U(SLIDE_OFFSET.y)}) scale(.98)`, offset:0 },
+    { opacity:1,  offset:.25 },
+    { opacity:1,  transform:'translate(0,0) scale(1)' }
+  ], { duration:ENVELOPE_DURATION, easing:SMOOTH_OUT });   // no overshoot: the tucked-in edge must stay hidden
+  anim(shadow, [
+    { opacity:shadowTo.from, transform:`scale(${shadowTo.fromS})` },
+    { opacity:shadowTo.to,   transform:`scale(${shadowTo.s * 1.06})`, offset:.55 },
+    { opacity:shadowTo.to,   transform:`scale(${shadowTo.s})` }
+  ], { duration:ENVELOPE_DURATION, easing:'ease-out' });
+}
+
+/* ---------- Phase 4: light flash + the stack lifts as the doodles launch ---------- */
+function launchFlash(){
+  anim(flash, [
+    { opacity:0, transform:'scale(.35)' },
+    { opacity:.9, transform:'scale(.9)', offset:.35 },
+    { opacity:0, transform:'scale(1.45)' }
+  ], { duration:600, easing:'ease-out' });
+  anim(stack, [{ transform:'translateY(0)' }, { transform:`translateY(${U(-12)})`, offset:.3 }, { transform:'translateY(0)' }], { duration:900, easing:'ease-in-out' });
+  anim(env.ENV1, [{ transform:'scale(1)' }, { transform:'scale(1.03)', offset:.3 }, { transform:'scale(1)' }], { duration:700, easing:'ease-out' });
+  anim(shadow, [{ opacity:1, transform:'scale(1)' }, { opacity:.6, transform:'scale(.88)', offset:.3 }, { opacity:1, transform:'scale(1)' }], { duration:900, easing:'ease-in-out' });
+}
+
+/* one spark flying off the trail */
+function spark(x, y, color, angle){
+  const s = document.createElement('div'); s.className = 'spark';
+  const size = rand(4, 9);
+  Object.assign(s.style, { width:U(size), height:U(size), background:color, boxShadow:`0 0 ${U(8)} ${color}` });
+  fx.appendChild(s);
+  const a = angle + rand(-1.2, 1.2), dist = rand(30, 70);
+  const tx = x + Math.cos(a) * dist, ty = y + Math.sin(a) * dist;
+  const an = s.animate([
+    { transform:`translate(${U(x)}, ${U(y)}) scale(1)`, opacity:1 },
+    { transform:`translate(${U(tx)}, ${U(ty)}) scale(.2)`, opacity:0 }
+  ], { duration:rand(380, 620), easing:'cubic-bezier(.2,.7,.3,1)' });
+  an.finished.then(() => s.remove(), () => s.remove());
+}
+
+/* one doodle: curved flight from the opening to its place, with trail, sparks and a moving shadow */
+function fly(d, id){
+  return new Promise(resolve => {
+    const P0 = { x:OPENING.x, y:OPENING.y + 10 };
+    const P2 = { x:d.cx, y:d.cy };
+    const P1 = { x:(P0.x + P2.x) / 2 + (P2.x - P0.x) * .15, y:Math.min(P0.y, P2.y) - 110 };   // arc upward
+    const rot0 = rand(-25, 25);
+    const sparkAt = [0.1, 0.22, 0.36, 0.5, 0.64].map(v => v + rand(-.03, .03));
+    let si = 0, prev = { ...P0 };
+    const t0 = performance.now();
+    d.wrap.style.opacity = 1;
+    const step = () => {
+      if (id !== runId) return resolve();
+      const t = Math.min(1, (performance.now() - t0) / DOODLE_FLIGHT_TIME);
+      const e = easeOutCubic(t);
+      // position on the quadratic Bezier
+      const x = (1-e)*(1-e)*P0.x + 2*(1-e)*e*P1.x + e*e*P2.x;
+      const y = (1-e)*(1-e)*P0.y + 2*(1-e)*e*P1.y + e*e*P2.y;
+      // scale 0 -> 1.25 -> 1 (spring), rotation to its final angle
+      const s = t < .55 ? 1.25 * easeOutCubic(t / .55) : 1.25 - .25 * easeOutCubic((t - .55) / .45);
+      const r = rot0 * (1 - easeOutCubic(t));
+      d.wrap.style.transform = `translate(${U(x - P2.x)}, ${U(y - P2.y)})`;
+      d.img.style.transform = `rotate(${r}deg) scale(${s})`;
+      d.wrap.style.opacity = Math.min(1, t / .12);
+      // soft moving shadow, shrinking and fading as it lands
+      const k = 1 - easeOutCubic(t);
+      d.img.style.filter = k > .01 ? `drop-shadow(${U(10*k)} ${U(14*k)} ${U(10*k + 2)} rgba(50,80,190,${(.25*k).toFixed(3)}))` : '';
+      // trail: points away from the direction of travel, longest at launch
+      const vx = x - prev.x, vy = y - prev.y; prev = { x, y };
+      if (Math.hypot(vx, vy) > .01){
+        const ang = Math.atan2(-vy, -vx);
+        const len = TRAIL_LENGTH * Math.pow(1 - t, .85) * Math.min(1, t / .06);
+        const thick = 36 * (1 - t * .6);
+        Object.assign(d.trail.style, {
+          width:U(len), height:U(thick), opacity:(1 - t) * Math.min(1, t / .05),
+          transform:`translate(${U(x)}, ${U(y - thick / 2)}) rotate(${ang}rad)`
+        });
+        // sparks shoot off the trail
+        while (si < sparkAt.length && t >= sparkAt[si]){
+          const bx = x + Math.cos(ang) * len * .35, by = y + Math.sin(ang) * len * .35;
+          spark(bx, by, si % 2 ? '#ffffff' : d.L.color, ang);
+          if (si % 2 === 0) spark(bx, by, d.L.color, ang + 0.6);
+          si++;
+        }
+      }
+      if (t < 1) requestAnimationFrame(step);
+      else {
+        d.trail.style.opacity = 0; d.img.style.filter = ''; d.img.style.transform = ''; d.wrap.style.transform = '';
+        d.wrap.classList.remove('wobble'); void d.wrap.offsetWidth; d.wrap.classList.add('wobble');   // settle wobble
+        resolve();
+      }
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+/* ---------- the timeline ---------- */
+async function play(){
+  const id = ++runId;
+  cancelAll(); scene.classList.remove('static'); setEmpty();
+  await sleep(START_DELAY); if (id !== runId) return;
+
+  while (id === runId){
+    enterFront();                                                     // Phase 1
+    await sleep(ENVELOPE_GAP); if (id !== runId) return;
+    slideOut(env.ENV2, { from:.7, fromS:.84, to:.85, s:.93 });        // Phase 2
+    await sleep(ENVELOPE_GAP); if (id !== runId) return;
+    slideOut(env.ENV3, { from:.85, fromS:.93, to:1, s:1 });           // Phase 3
+    await sleep(ENVELOPE_DURATION - 250); if (id !== runId) return;   // launch ~250ms before it settles
+
+    launchFlash();                                                    // Phase 4: doodles pop out
+    const flights = doodles.map((d, i) => sleep(i * DOODLE_STAGGER).then(() => id === runId && fly(d, id)));
+    await Promise.all(flights); if (id !== runId) return;
+    await sleep(400); if (id !== runId) return;                       // last wobble
+
+    // Phase 5: idle float, then fade and loop
+    cancelAll(); setFinal(); scene.classList.add('idle');
+    await sleep(HOLD_TIME); if (id !== runId) return;
+    const fade = [...Object.values(env), ...doodles.map(d => d.wrap)].map(el => anim(el, [{ opacity:1 }, { opacity:0 }], { duration:FADE_TIME, easing:'ease-in-out' }));
+    anim(shadow, [{ opacity:getComputedStyle(shadow).opacity }, { opacity:.22 }], { duration:FADE_TIME, easing:'ease-in-out' });
+    await Promise.all(fade.map(a => a.finished.catch(()=>{}))); if (id !== runId) return;
+    cancelAll(); setEmpty();
+    await sleep(START_DELAY); if (id !== runId) return;
+  }
+}
+
+/* ---------- reduced motion: the finished scene, no movement ---------- */
+const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+function showStatic(){ runId++; cancelAll(); scene.classList.remove('idle'); scene.classList.add('static'); setFinal(); }
+document.getElementById('replay').addEventListener('click', () => reduce.matches ? showStatic() : play());
+reduce.matches ? showStatic() : play();
+</script>
+</body>
+</html>
