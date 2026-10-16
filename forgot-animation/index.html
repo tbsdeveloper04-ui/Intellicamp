@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intellicamp – Forgot Password</title>
+<style>
+  /* ============================================================
+     Colours
+     ============================================================ */
+  :root{
+    --page-top:#ffffff;
+    --page-bottom:#eef4fe;
+    --flash-core:rgba(255,255,255,.95);
+    --flash-edge:rgba(160,195,255,.55);
+    --ring:rgba(120,165,255,.75);
+    --glint:rgba(255,255,255,.9);
+    --btn-text:#4a5878;
+    --btn-border:rgba(80,110,200,.22);
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    padding:24px 16px; background:linear-gradient(var(--page-top), var(--page-bottom));
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+
+  /* ============================================================
+     Scene: laid out on the 1200 x 760 design canvas.
+     1 design unit = 100cqw / 1200, so the whole scene scales together.
+     ============================================================ */
+  .stage{ width:min(100%, 720px); container-type:inline-size; }
+  .scene{
+    position:relative; width:100%; aspect-ratio:1200 / 760; overflow:hidden;
+    background:url("assets/background.png") center / 100% 100% no-repeat;
+  }
+  .layer{ position:absolute; display:block; will-change:transform, opacity; }
+  .layer > img{ width:100%; height:100%; display:block; user-select:none; -webkit-user-drag:none; }
+  .lock{ position:absolute; inset:0; will-change:transform, opacity; }   /* body + shackle + key move together */
+  .shake{ position:absolute; inset:0; }
+
+  /* key: metallic glint masked to the key's own shape */
+  .glint{ position:absolute; inset:0; overflow:hidden; pointer-events:none;
+          /* ring-shaped mask over the key head (a gradient, so it also works when the file is opened from disk) */
+          -webkit-mask:radial-gradient(ellipse 21.6% 49.5% at 77.5% 49.5%, transparent 39%, #000 43%, #000 95%, transparent 99%);
+                  mask:radial-gradient(ellipse 21.6% 49.5% at 77.5% 49.5%, transparent 39%, #000 43%, #000 95%, transparent 99%); }
+  .glint i{ position:absolute; top:-30%; bottom:-30%; width:9%; left:-30%; transform:skewX(-24deg); opacity:0;
+            background:linear-gradient(90deg, transparent, var(--glint), transparent); }
+
+  /* light burst */
+  .flash, .ring{ position:absolute; border-radius:50%; pointer-events:none; opacity:0; will-change:transform, opacity; }
+  .flash{ background:radial-gradient(circle, var(--flash-core) 0%, rgba(235,243,255,.75) 30%, var(--flash-edge) 55%, rgba(160,195,255,0) 72%); }
+  .ring{ border:calc(100cqw / 1200 * 3) solid var(--ring); }
+
+  /* idle */
+  .idle .lock{ animation:float 3.5s ease-in-out infinite; }
+  .idle .shadow{ animation:shadowFloat 3.5s ease-in-out infinite; }
+  @keyframes float{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(calc(100cqw / 1200 * -12)) } }
+  @keyframes shadowFloat{ 0%,100%{ transform:scale(1); opacity:1 } 50%{ transform:scale(.9); opacity:.72 } }
+  .idle .conf{ animation:drift var(--drift,3s) ease-in-out infinite; }
+  @keyframes drift{
+    0%,100%{ transform:translate(0,0) }
+    33%{ transform:translate(calc(100cqw / 1200 * var(--dx,6)), calc(100cqw / 1200 * var(--dy,-6))) }
+    66%{ transform:translate(calc(100cqw / 1200 * var(--dx,6) * -.6), calc(100cqw / 1200 * var(--dy,-6) * -.5)) }
+  }
+  .idle .ray{ animation:rayPulse 2.4s ease-in-out infinite; }
+  @keyframes rayPulse{ 0%,100%{ opacity:1 } 50%{ opacity:.7 } }
+  .conf > img{ transform-origin:50% 50%; }
+  .conf.wobble > img{ animation:wobble 350ms ease-in-out; }
+  @keyframes wobble{ 0%,100%{ transform:rotate(0) } 30%{ transform:rotate(3deg) } 70%{ transform:rotate(-3deg) } }
+
+  .static *{ animation:none !important; transition:none !important; }
+
+  /* Replay */
+  .replay{
+    font:500 13px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--btn-text);
+    background:rgba(255,255,255,.7); border:1px solid var(--btn-border); border-radius:999px;
+    padding:9px 16px 9px 13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+    backdrop-filter:blur(6px); box-shadow:0 2px 8px rgba(40,70,160,.08); transition:background .2s, color .2s;
+  }
+  .replay:hover{ background:#fff; color:#3150c8; }
+  .replay:focus-visible{ outline:2px solid #3150c8; outline-offset:3px; }
+  .replay svg{ width:14px; height:14px; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="scene" id="scene" role="img" aria-label="Intellicamp. Forgot your password? A key slides into a padlock, turns, the padlock opens and confetti bursts out."></div>
+</div>
+
+<button class="replay" id="replay" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+  Replay
+</button>
+
+<script>
+/* ============================================================
+   Behaviour options
+   ============================================================ */
+const KEY_AFTER_UNLOCK = "stay";   // "stay": key turns back and stays (final frame = reference) | "fade": key slides out and fades
+const SHACKLE_MODE     = "lift";   // "lift": straight up only | "swing": lifts and swings open around the right leg
+
+/* ============================================================
+   Timings (ms) and distances (design units; the canvas is 1200 wide)
+   ============================================================ */
+const START_DELAY       = 350;
+const LOCK_FADE_TIME    = 1200;
+const LOCK_HOLD         = 400;
+const KEY_SLIDE_TIME    = 800;
+const KEY_TURN_TIME     = 500;
+const KEY_TURN_ANGLE    = 80;     // degrees, clockwise around the keyhole
+const SHACKLE_OPEN_TIME = 600;
+const SHACKLE_LIFT      = 28;
+const SHACKLE_SWING     = -35;    // degrees ("swing" mode only)
+const BURST_STAGGER     = 40;     // per rank, nearest pieces first, left and right together
+const BURST_TIME        = 800;    // one piece's flight
+const SHACKLE_CLOSE_AFTER = 700;  // after the unlock
+const HOLD_TIME         = 3000;
+const FADE_TIME         = 600;
+const SPRING     = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+const EASE_OUT   = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+/* ============================================================
+   Layers: file, x, y, w, h on the 1200 x 760 canvas, z-index.
+   Positions were measured by matching the artwork against the design.
+   ============================================================ */
+const LAYERS = {
+  SHADOW:     { file:'assets/layers/shadow.png', x:386.00, y:448.88, w:420, h:100, z:1 },
+  SHACKLE:    { file:'assets/layers/shackle.png', x:506.74, y:195.49, w:135.34, h:140.03, z:2, pivot:[91.1,100] },   // swing pivot: foot of the right leg, hidden inside the body
+  LOCK_BODY:  { file:'assets/layers/lock-body.png', x:469.22, y:265.84, w:209.04, h:208.37, z:3 },
+  LOCK_INNER: { file:'assets/layers/lock-inner.png', x:498.70, y:295.32, w:149.41, h:150.08, z:4 },
+  KEY:        { file:'assets/layers/key.png', x:572.40, y:356.96, w:158.12, h:69.01, z:5, pivot:[3.39,48.54] },
+  // the 8th tick (right) sits behind the key head in the artwork, so 7 are visible
+  RAY_02: { file:'assets/layers/ray-02.png', x:570.39, y:228.32, w:8.71, h:28.81, z:7, origin:[38.5,93.0], angle:-89.4 },
+  RAY_03: { file:'assets/layers/ray-03.png', x:472.57, y:259.14, w:24.12, h:24.12, z:7, origin:[86.1,94.4], angle:-132.0 },
+  RAY_04: { file:'assets/layers/ray-04.png', x:653.47, y:259.81, w:24.12, h:23.45, z:7, origin:[8.3,94.3], angle:-46.9 },
+  RAY_16: { file:'assets/layers/ray-16.png', x:434.38, y:366.34, w:27.47, h:8.71, z:7, origin:[92.7,38.5], angle:179.7 },
+  RAY_26: { file:'assets/layers/ray-26.png', x:473.24, y:450.76, w:23.45, h:23.45, z:7, origin:[85.7,2.9], angle:133.8 },
+  RAY_27: { file:'assets/layers/ray-27.png', x:652.13, y:450.76, w:23.45, h:23.45, z:7, origin:[11.4,2.9], angle:45.7 },
+  RAY_29: { file:'assets/layers/ray-29.png', x:569.72, y:478.90, w:8.71, h:29.48, z:7, origin:[46.2,4.5], angle:89.7 },
+  CONF_05: { file:'assets/layers/conf-05.png', x:765.36, y:267.18, w:22.11, h:30.15, z:8 },
+  CONF_06: { file:'assets/layers/conf-06.png', x:353.31, y:275.22, w:46.90, h:33.50, z:8 },
+  CONF_07: { file:'assets/layers/conf-07.png', x:424.33, y:281.25, w:26.80, h:25.46, z:8 },
+  CONF_08: { file:'assets/layers/conf-08.png', x:707.74, y:282.59, w:22.78, h:22.11, z:8 },
+  CONF_09: { file:'assets/layers/conf-09.png', x:777.42, y:302.02, w:22.78, h:20.10, z:8 },
+  CONF_10: { file:'assets/layers/conf-10.png', x:303.73, y:307.38, w:20.77, h:20.10, z:8 },
+  CONF_11: { file:'assets/layers/conf-11.png', x:824.32, y:317.43, w:29.48, h:21.44, z:8 },
+  CONF_12: { file:'assets/layers/conf-12.png', x:410.93, y:333.51, w:19.43, h:19.43, z:8 },
+  CONF_13: { file:'assets/layers/conf-13.png', x:741.24, y:333.51, w:21.44, h:20.77, z:8 },
+  CONF_14: { file:'assets/layers/conf-14.png', x:355.99, y:335.52, w:25.46, h:25.46, z:8 },
+  CONF_15: { file:'assets/layers/conf-15.png', x:762.01, y:364.33, w:48.24, h:28.81, z:8 },
+  CONF_17: { file:'assets/layers/conf-17.png', x:837.05, y:367.01, w:22.78, h:22.11, z:8 },
+  CONF_18: { file:'assets/layers/conf-18.png', x:303.06, y:372.37, w:31.49, h:14.07, z:8 },
+  CONF_19: { file:'assets/layers/conf-19.png', x:383.46, y:373.71, w:16.75, h:16.75, z:8 },
+  CONF_20: { file:'assets/layers/conf-20.png', x:815.61, y:408.55, w:28.14, h:18.09, z:8 },
+  CONF_21: { file:'assets/layers/conf-21.png', x:433.71, y:411.90, w:18.09, h:17.42, z:8 },
+  CONF_22: { file:'assets/layers/conf-22.png', x:334.55, y:412.57, w:24.12, h:24.12, z:8 },
+  CONF_23: { file:'assets/layers/conf-23.png', x:747.94, y:414.58, w:22.78, h:22.78, z:8 },
+  CONF_24: { file:'assets/layers/conf-24.png', x:789.48, y:446.07, w:20.77, h:20.77, z:8 },
+  CONF_25: { file:'assets/layers/conf-25.png', x:389.49, y:451.43, w:18.09, h:17.42, z:8 },
+  CONF_28: { file:'assets/layers/conf-28.png', x:714.44, y:452.10, w:20.77, h:21.44, z:8 },
+};
+const LOCK_CENTRE = { x:573.5, y:370.0 };
+const W = 1200, H = 760;
+
+/* ---------- helpers ---------- */
+const U = n => `calc(100cqw / ${W} * ${n})`;      // design units -> CSS length
+const pct = (v, of) => (v / of * 100) + '%';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const rand = (a, b) => a + Math.random() * (b - a);
+
+/* ---------- build the scene ---------- */
+const scene = document.getElementById('scene');
+function layer(L, cls, parent){
+  const d = document.createElement('div'); d.className = 'layer ' + (cls || '');
+  Object.assign(d.style, { left:pct(L.x, W), top:pct(L.y, H), width:pct(L.w, W), height:pct(L.h, H), zIndex:L.z });
+  const i = new Image(); i.src = L.file; i.alt = ''; i.draggable = false; d.appendChild(i);
+  (parent || scene).appendChild(d); return d;
+}
+const shadow = layer(LAYERS.SHADOW, 'shadow');
+const lock = document.createElement('div'); lock.className = 'lock'; lock.style.zIndex = 2; scene.appendChild(lock);
+const shake = document.createElement('div'); shake.className = 'shake'; lock.appendChild(shake);
+const shackle = layer(LAYERS.SHACKLE, '', shake);
+shackle.style.transformOrigin = `${LAYERS.SHACKLE.pivot[0]}% ${LAYERS.SHACKLE.pivot[1]}%`;
+const body  = layer(LAYERS.LOCK_BODY, '', shake);
+const inner = layer(LAYERS.LOCK_INNER, '', shake);
+const key   = layer(LAYERS.KEY, '', lock);           // the key is not shaken by the click, it is the one turning
+key.style.transformOrigin = `${LAYERS.KEY.pivot[0]}% ${LAYERS.KEY.pivot[1]}%`;
+const glint = document.createElement('div'); glint.className = 'glint'; glint.innerHTML = '<i></i>'; key.appendChild(glint);
+
+function fxCircle(cls, size){
+  const d = document.createElement('div'); d.className = cls;
+  Object.assign(d.style, { left:pct(LOCK_CENTRE.x - size / 2, W), top:pct(LOCK_CENTRE.y - size / 2, H), width:pct(size, W), height:pct(size, H), zIndex:6 });
+  scene.appendChild(d); return d;
+}
+const flash = fxCircle('flash', 420);
+const ring  = fxCircle('ring', 260);
+
+// sparkles: tick rays + confetti, each its own layer
+const rays = Object.keys(LAYERS).filter(k => k.startsWith('RAY_')).map(k => {
+  const L = LAYERS[k]; const el = layer(L, 'ray'); const img = el.firstChild;
+  img.style.transformOrigin = `${L.origin[0]}% ${L.origin[1]}%`;
+  return { L, el, img };
+});
+const conf = Object.keys(LAYERS).filter(k => k.startsWith('CONF_')).map((k, n) => {
+  const L = LAYERS[k]; const el = layer(L, 'conf'); const img = el.firstChild;
+  const cx = L.x + L.w / 2, cy = L.y + L.h / 2;
+  el.style.setProperty('--drift', (2.5 + (n * 0.37) % 2) + 's');
+  el.style.setProperty('--dx', (n % 2 ? -1 : 1) * (3 + n % 3)); el.style.setProperty('--dy', (n % 3 ? 1 : -1) * (3 + (n + 1) % 3));
+  return { L, el, img, cx, cy, side: cx < LOCK_CENTRE.x ? 'L' : 'R', dist: Math.hypot(cx - LOCK_CENTRE.x, cy - LOCK_CENTRE.y) };
+});
+// stagger rank: nearest first, left and right sides ranked separately so they fire together
+['L','R'].forEach(s => conf.filter(c => c.side === s).sort((a, b) => a.dist - b.dist).forEach((c, i) => c.rank = i));
+
+/* ---------- WAAPI bookkeeping (kept until cancelled: a finished fill keeps applying) ---------- */
+let runId = 0;
+const running = new Set();
+function anim(el, frames, opts){ const a = el.animate(frames, { fill:'forwards', ...opts }); running.add(a); return a; }
+function cancelAll(){ running.forEach(a => a.cancel()); running.clear(); }
+
+/* ---------- states ---------- */
+function setEmpty(){
+  scene.classList.remove('idle');
+  shadow.style.opacity = .22; shadow.style.transform = 'scale(.7)';
+  lock.style.opacity = 0; key.style.opacity = 0;
+  [shackle, body, inner, key, lock, shake].forEach(e => { e.style.transform = ''; e.style.filter = ''; });
+  rays.forEach(r => { r.el.style.opacity = 0; r.img.style.transform = ''; r.img.style.filter = ''; });
+  conf.forEach(c => { c.el.style.opacity = 0; c.el.style.transform = ''; c.img.style.transform = ''; c.img.style.filter = ''; c.el.classList.remove('wobble'); });
+}
+function setFinal(){
+  shadow.style.opacity = 1; shadow.style.transform = 'scale(1)';
+  lock.style.opacity = 1; key.style.opacity = KEY_AFTER_UNLOCK === 'fade' ? 0 : 1;
+  [shackle, body, inner, key, lock, shake].forEach(e => { e.style.transform = ''; e.style.filter = ''; });
+  rays.forEach(r => { r.el.style.opacity = 1; r.img.style.transform = ''; r.img.style.filter = ''; });
+  conf.forEach(c => { c.el.style.opacity = 1; c.el.style.transform = ''; c.img.style.transform = ''; c.img.style.filter = ''; });
+}
+
+/* ---------- Phase 1: the closed lock fades in ---------- */
+function lockIn(){
+  lock.style.opacity = 1;
+  anim(lock, [
+    { opacity:0,   transform:`translateY(${U(14)}) scale(.94)` },
+    { opacity:.35, offset:.4 },
+    { opacity:1,   transform:'translateY(0) scale(1)' }
+  ], { duration:LOCK_FADE_TIME, easing:'ease-out' });
+  anim(shadow, [{ opacity:.22, transform:'scale(.7)' }, { opacity:1, transform:'scale(1)' }], { duration:LOCK_FADE_TIME, easing:'ease-out' });
+}
+
+/* ---------- Phase 2: key slides in, glints, turns ---------- */
+function keyIn(){
+  key.style.opacity = 1;
+  return anim(key, [
+    { opacity:0, transform:`translateX(${U(220)}) rotate(-8deg)` },
+    { opacity:1, offset:.45 },
+    { opacity:1, transform:'translateX(0) rotate(0deg)' }
+  ], { duration:KEY_SLIDE_TIME, easing:SPRING }).finished;
+}
+function keyGlint(){
+  anim(glint.firstChild, [{ left:'52%', opacity:0 }, { opacity:1, offset:.2 }, { opacity:1, offset:.8 }, { left:'104%', opacity:0 }], { duration:550, easing:'ease-in-out' });
+}
+function keyTurn(){
+  return anim(key, [{ transform:'rotate(0deg)' }, { transform:`rotate(${KEY_TURN_ANGLE}deg)` }], { duration:KEY_TURN_TIME, easing:'ease-in-out' }).finished;
+}
+function click(){
+  anim(shake, [
+    { transform:'translate(0,0)' }, { transform:`translate(${U(2)},0)`, offset:.25 }, { transform:`translate(${U(-2)},0)`, offset:.6 }, { transform:'translate(0,0)' }
+  ], { duration:120, easing:'linear' });
+}
+
+/* ---------- unlock: shackle opens, inner circle pulses, sparkles burst ---------- */
+function shackleOpen(){
+  const to = SHACKLE_MODE === 'swing'
+    ? `translateY(${U(-SHACKLE_LIFT)}) rotate(${SHACKLE_SWING}deg)`
+    : `translateY(${U(-SHACKLE_LIFT)})`;
+  anim(shackle, [{ transform:'translateY(0) rotate(0deg)' }, { transform:to }], { duration:SHACKLE_OPEN_TIME, easing:SPRING });
+  anim(inner, [{ filter:'brightness(1)' }, { filter:'brightness(1.15)', offset:.4 }, { filter:'brightness(1)' }], { duration:600, easing:'ease-out' });
+}
+function shackleClose(){
+  const from = SHACKLE_MODE === 'swing'
+    ? `translateY(${U(-SHACKLE_LIFT)}) rotate(${SHACKLE_SWING}deg)`
+    : `translateY(${U(-SHACKLE_LIFT)})`;
+  return anim(shackle, [{ transform:from }, { transform:'translateY(0) rotate(0deg)' }], { duration:SHACKLE_OPEN_TIME, easing:SPRING }).finished;
+}
+function keyAfter(){
+  if (KEY_AFTER_UNLOCK === 'fade'){
+    return anim(key, [{ opacity:1, transform:`rotate(${KEY_TURN_ANGLE}deg)` }, { opacity:0, transform:`translateX(${U(40)}) rotate(${KEY_TURN_ANGLE}deg)` }], { duration:500, easing:'ease-in' }).finished;
+  }
+  return anim(key, [{ transform:`rotate(${KEY_TURN_ANGLE}deg)` }, { transform:'rotate(0deg)' }], { duration:KEY_TURN_TIME, easing:'ease-in-out' }).finished;
+}
+function lightBurst(){
+  anim(flash, [{ opacity:0, transform:'scale(.4)' }, { opacity:.8, transform:'scale(.9)', offset:.35 }, { opacity:0, transform:'scale(1.4)' }], { duration:600, easing:'ease-out' });
+  anim(ring,  [{ opacity:.6, transform:'scale(.6)' }, { opacity:0, transform:'scale(2.2)' }], { duration:800, easing:'cubic-bezier(.2,.7,.3,1)' });
+}
+// a tick grows outward along its own axis from the end nearest the lock, flashing brighter for 200ms
+function rayGrow(r){
+  r.el.style.opacity = 1;
+  const a = r.L.angle;
+  anim(r.img, [
+    { transform:`rotate(${a}deg) scaleX(0) rotate(${-a}deg)`, filter:'brightness(1.6)' },
+    { transform:`rotate(${a}deg) scaleX(1.15) rotate(${-a}deg)`, filter:'brightness(1.6)', offset:.6 },
+    { transform:`rotate(${a}deg) scaleX(1) rotate(${-a}deg)`, filter:'brightness(1)' }
+  ], { duration:420, easing:'ease-out' });
+}
+// one confetti piece: curved flight from the lock centre to its place
+function fly(c, id){
+  return new Promise(resolve => {
+    const P0 = { x:LOCK_CENTRE.x, y:LOCK_CENTRE.y };
+    const P2 = { x:c.cx, y:c.cy };
+    const mx = (P0.x + P2.x) / 2, my = (P0.y + P2.y) / 2;
+    const nx = -(P2.y - P0.y), ny = P2.x - P0.x, nl = Math.hypot(nx, ny) || 1;
+    const bend = rand(.12, .25) * (c.side === 'L' ? 1 : -1) * c.dist;            // slight curve, mirrored per side
+    const P1 = { x:mx + nx / nl * bend, y:my + ny / nl * bend - 30 };
+    const rot0 = rand(-180, 180), dur = rand(700, 900);
+    const t0 = performance.now();
+    c.el.style.opacity = 1;
+    const step = () => {
+      if (id !== runId) return resolve();
+      const t = Math.min(1, (performance.now() - t0) / dur);
+      const e = easeOutCubic(t);
+      const x = (1-e)*(1-e)*P0.x + 2*(1-e)*e*P1.x + e*e*P2.x;
+      const y = (1-e)*(1-e)*P0.y + 2*(1-e)*e*P1.y + e*e*P2.y;
+      const s = t < .6 ? 1.3 * easeOutCubic(t / .6) : 1.3 - .3 * easeOutCubic((t - .6) / .4);
+      c.el.style.transform = `translate(${U(x - P2.x)}, ${U(y - P2.y)})`;
+      c.img.style.transform = `rotate(${rot0 * (1 - e)}deg) scale(${s})`;
+      c.el.style.opacity = Math.min(1, t / .1);
+      const k = 1 - e;   // soft blue shadow that fades as it lands
+      c.img.style.filter = k > .01 ? `drop-shadow(${U(6*k)} ${U(6*k)} ${U(6*k + 2)} rgba(50,80,190,${(.25*k).toFixed(3)}))` : '';
+      if (t < 1) requestAnimationFrame(step);
+      else {
+        c.img.style.transform = ''; c.img.style.filter = ''; c.el.style.transform = '';
+        c.el.classList.remove('wobble'); void c.el.offsetWidth; c.el.classList.add('wobble');
+        resolve();
+      }
+    };
+    requestAnimationFrame(step);
+  });
+}
+function burst(id){
+  lightBurst();
+  rays.forEach(rayGrow);
+  return Promise.all(conf.map(c => sleep(c.rank * BURST_STAGGER).then(() => id === runId && fly(c, id))));
+}
+
+/* ---------- the timeline ---------- */
+async function play(){
+  const id = ++runId;
+  cancelAll(); scene.classList.remove('static'); setEmpty();
+  await sleep(START_DELAY); if (id !== runId) return;
+
+  while (id === runId){
+    lockIn();                                                            // Phase 1
+    await sleep(LOCK_FADE_TIME + LOCK_HOLD); if (id !== runId) return;
+
+    await keyIn(); if (id !== runId) return;                            // Phase 2
+    keyGlint();
+    await sleep(450); if (id !== runId) return;
+    await keyTurn(); if (id !== runId) return;
+
+    click(); shackleOpen();                                              // unlock moment
+    const burstDone = burst(id);                                         // Phase 3
+
+    await sleep(SHACKLE_CLOSE_AFTER); if (id !== runId) return;         // Phase 4
+    await Promise.all([shackleClose(), keyAfter(), burstDone]); if (id !== runId) return;
+    await sleep(350); if (id !== runId) return;                          // last wobble
+
+    cancelAll(); setFinal(); scene.classList.add('idle');
+    await sleep(HOLD_TIME); if (id !== runId) return;
+    const els = [lock, ...rays.map(r => r.el), ...conf.map(c => c.el)];
+    const fades = els.map(el => anim(el, [{ opacity:getComputedStyle(el).opacity }, { opacity:0 }], { duration:FADE_TIME, easing:'ease-in-out' }));
+    anim(shadow, [{ opacity:getComputedStyle(shadow).opacity }, { opacity:.22 }], { duration:FADE_TIME, easing:'ease-in-out' });
+    await Promise.all(fades.map(a => a.finished.catch(() => {}))); if (id !== runId) return;
+    cancelAll(); setEmpty();
+    await sleep(START_DELAY); if (id !== runId) return;
+  }
+}
+
+/* ---------- reduced motion: the finished scene, no movement ---------- */
+const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+function showStatic(){ runId++; cancelAll(); scene.classList.remove('idle'); scene.classList.add('static'); setFinal(); }
+document.getElementById('replay').addEventListener('click', () => reduce.matches ? showStatic() : play());
+reduce.matches ? showStatic() : play();
+</script>
+</body>
+</html>
