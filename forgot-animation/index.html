@@ -111,13 +111,14 @@ const LOCK_FADE_TIME    = 1200;
 const LOCK_HOLD         = 400;
 const KEY_SLIDE_TIME    = 800;
 const KEY_TURN_TIME     = 500;
-const KEY_TURN_ANGLE    = 80;     // degrees, clockwise around the keyhole
+const KEY_TWIST         = 70;     // degrees the key twists around its own shaft, like turning a real key
+const KEY_TILT          = 14;     // degrees it tilts to the right (clockwise) while turning, tip stays in the keyhole
 const SHACKLE_OPEN_TIME = 600;
-const SHACKLE_LIFT      = 28;
+const SHACKLE_LIFT      = 36;     // high enough that the left leg clears the body and a gap shows
 const SHACKLE_SWING     = -35;    // degrees ("swing" mode only)
 const BURST_STAGGER     = 40;     // per rank, nearest pieces first, left and right together
 const BURST_TIME        = 800;    // one piece's flight
-const SHACKLE_CLOSE_AFTER = 700;  // after the unlock
+const SHACKLE_CLOSE_AFTER = 1000; // after the unlock (long enough to read the open padlock)
 const HOLD_TIME         = 3000;
 const FADE_TIME         = 600;
 const SPRING     = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -262,8 +263,11 @@ function keyIn(){
 function keyGlint(){
   anim(glint.firstChild, [{ left:'52%', opacity:0 }, { opacity:1, offset:.2 }, { opacity:1, offset:.8 }, { left:'104%', opacity:0 }], { duration:550, easing:'ease-in-out' });
 }
+// turned pose: the key stays in the keyhole, twists around its shaft (3D) and tilts slightly to the right
+const KEY_TURNED = `perspective(${U(900)}) rotate(${KEY_TILT}deg) rotateX(${KEY_TWIST}deg)`;
+const KEY_REST   = `perspective(${U(900)}) rotate(0deg) rotateX(0deg)`;
 function keyTurn(){
-  return anim(key, [{ transform:'rotate(0deg)' }, { transform:`rotate(${KEY_TURN_ANGLE}deg)` }], { duration:KEY_TURN_TIME, easing:'ease-in-out' }).finished;
+  return anim(key, [{ transform:KEY_REST }, { transform:KEY_TURNED }], { duration:KEY_TURN_TIME, easing:'ease-in-out' }).finished;
 }
 function click(){
   anim(shake, [
@@ -287,9 +291,9 @@ function shackleClose(){
 }
 function keyAfter(){
   if (KEY_AFTER_UNLOCK === 'fade'){
-    return anim(key, [{ opacity:1, transform:`rotate(${KEY_TURN_ANGLE}deg)` }, { opacity:0, transform:`translateX(${U(40)}) rotate(${KEY_TURN_ANGLE}deg)` }], { duration:500, easing:'ease-in' }).finished;
+    return anim(key, [{ opacity:1, transform:KEY_TURNED }, { opacity:0, transform:`translateX(${U(40)}) ${KEY_TURNED}` }], { duration:500, easing:'ease-in' }).finished;
   }
-  return anim(key, [{ transform:`rotate(${KEY_TURN_ANGLE}deg)` }, { transform:'rotate(0deg)' }], { duration:KEY_TURN_TIME, easing:'ease-in-out' }).finished;
+  return anim(key, [{ transform:KEY_TURNED }, { transform:KEY_REST }], { duration:KEY_TURN_TIME, easing:'ease-in-out' }).finished;
 }
 function lightBurst(){
   anim(flash, [{ opacity:0, transform:'scale(.4)' }, { opacity:.8, transform:'scale(.9)', offset:.35 }, { opacity:0, transform:'scale(1.4)' }], { duration:600, easing:'ease-out' });
