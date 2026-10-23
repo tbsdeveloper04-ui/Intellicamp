@@ -1,0 +1,138 @@
+{
+ "clouds": [
+  {
+   "file": "assets/layers/cloud_1.png",
+   "x": 728,
+   "y": 335,
+   "w": 245,
+   "h": 196
+  },
+  {
+   "file": "assets/layers/cloud_2.png",
+   "x": 1124,
+   "y": 350,
+   "w": 74,
+   "h": 155
+  },
+  {
+   "file": "assets/layers/cloud_3.png",
+   "x": 674,
+   "y": 367,
+   "w": 95,
+   "h": 121
+  },
+  {
+   "file": "assets/layers/cloud_4.png",
+   "x": 537,
+   "y": 466,
+   "w": 194,
+   "h": 196
+  },
+  {
+   "file": "assets/layers/cloud_5.png",
+   "x": 737,
+   "y": 487,
+   "w": 58,
+   "h": 88
+  }
+ ],
+ "cards": {
+  "chart": {
+   "card": {
+    "file": "assets/layers/card-chart.png",
+    "x": 972,
+    "y": 60,
+    "w": 195,
+    "h": 189
+   },
+   "parts": [
+    {
+     "file": "assets/layers/chart-bar-1.png",
+     "x": 1029,
+     "y": 170,
+     "w": 15,
+     "h": 25
+    },
+    {
+     "file": "assets/layers/chart-bar-2.png",
+     "x": 1045,
+     "y": 152,
+     "w": 18,
+     "h": 40
+    },
+    {
+     "file": "assets/layers/chart-bar-3.png",
+     "x": 1064,
+     "y": 130,
+     "w": 21,
+     "h": 58
+    },
+    {
+     "file": "assets/layers/chart-bar-4.png",
+     "x": 1088,
+     "y": 106,
+     "w": 23,
+     "h": 78
+    }
+   ]
+  },
+  "people": {
+   "card": {
+    "file": "assets/layers/card-people.png",
+    "x": 852,
+    "y": 209,
+    "w": 171,
+    "h": 167
+   },
+   "parts": {
+    "left": {
+     "file": "assets/layers/people-left.png",
+     "x": 902,
+     "y": 268,
+     "w": 27,
+     "h": 45
+    },
+    "centre": {
+     "file": "assets/layers/people-centre.png",
+     "x": 918,
+     "y": 266,
+     "w": 40,
+     "h": 57
+    },
+    "right": {
+     "file": "assets/layers/people-right.png",
+     "x": 948,
+     "y": 267,
+     "w": 27,
+     "h": 46
+    }
+   },
+   "ncomp": 6
+  },
+  "cap": {
+   "card": {
+    "file": "assets/layers/card-cap.png",
+    "x": 1031,
+    "y": 237,
+    "w": 163,
+    "h": 150
+   },
+   "parts": {
+    "cap": {
+     "file": "assets/layers/cap-hat.png",
+     "x": 1078,
+     "y": 285,
+     "w": 68,
+     "h": 53
+    },
+    "tassel": {
+     "file": "assets/layers/cap-tassel.png",
+     "x": 1135,
+     "y": 306,
+     "w": 8,
+     "h": 22
+    }
+   }
+  }
+ }
+}

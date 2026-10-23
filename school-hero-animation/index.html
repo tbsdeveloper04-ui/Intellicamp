@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intellicamp – School Welcome Hero</title>
+<style>
+  /* ============================================================
+     Colours
+     ============================================================ */
+  :root{
+    --page:#ffffff;
+    --card-glow:rgba(255,255,255,.95);
+    --shirt:#f7f8fa; --shirt-shade:#dfe3ea;
+    --navy:#1f2d5a; --navy-dark:#162146;
+    --tie:#8fc2f2; --sock:#ffffff; --shoe:#1b1b1f;
+    --hair:#1d1714; --leaf:#7cbf3a; --leaf-dark:#4f8f22;
+    --btn-text:#4a5878; --btn-border:rgba(80,110,200,.22);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{ min-height:100vh; background:var(--page); display:flex; flex-direction:column; align-items:center; justify-content:center;
+        gap:18px; padding:24px 16px; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+
+  /* ============================================================
+     Scene on the 1198 x 800 canvas of the original image. 1 unit = 100cqw / 1198.
+     The clip copies the image's own rounded bottom corners.
+     ============================================================ */
+  .stage{ width:min(100%, 760px); container-type:inline-size; }
+  .hero{ position:relative; width:100%; aspect-ratio:1198 / 800; overflow:hidden; isolation:isolate;
+         border-radius:0 0 19.45% 19.45% / 0 0 29.125% 29.125%; background:#f3f6fd; }
+  .scene{ position:absolute; inset:0; }
+  .abs{ position:absolute; display:block; }
+  .abs > img, img.abs{ width:100%; height:100%; display:block; user-select:none; -webkit-user-drag:none; }
+
+  /* clouds: very slow drift and breathing (durations and offsets set per cloud from the script) */
+  .cloud{ will-change:transform, opacity; animation:var(--anim) var(--dur) ease-in-out var(--delay) infinite; }
+  @keyframes cloudDrift{ 0%,100%{ transform:translate(calc(100cqw/1198 * var(--ax) * -1), calc(100cqw/1198 * var(--ay))); opacity:.92 }
+                         50%    { transform:translate(calc(100cqw/1198 * var(--ax)),      calc(100cqw/1198 * var(--ay) * -1)); opacity:1 } }
+  @keyframes cloudDriftRight{ 0%,100%{ transform:translateX(0); opacity:.94 } 50%{ transform:translateX(calc(100cqw/1198 * var(--ax))); opacity:1 } }
+  .soft-cloud{ border-radius:50%; filter:blur(calc(100cqw/1198 * 18)); background:radial-gradient(closest-side, rgba(255,255,255,.95), rgba(255,255,255,0)); }
+
+  /* foliage: slow breeze from the bottom centre of each plant, plus leaf flutter (filter on these small layers only) */
+  .leafy{ will-change:transform; filter:url(#flutter); transform-origin:50% 100%;
+          animation:sway var(--dur) ease-in-out var(--delay) infinite; }
+  @keyframes sway{ 0%,100%{ transform:translateX(calc(100cqw/1198 * -3 * var(--amp))) rotate(calc(-.8deg * var(--amp))) }
+                   50%    { transform:translateX(calc(100cqw/1198 *  3 * var(--amp))) rotate(calc( .8deg * var(--amp))) } }
+
+  /* cards: outer = idle float, inner = pop / retreat */
+  .float{ will-change:transform; }
+  .idle .float{ animation:cardFloat var(--fdur) ease-in-out var(--fdelay) infinite; }
+  @keyframes cardFloat{ 0%,100%{ transform:translateY(0) rotate(0) } 50%{ transform:translateY(calc(100cqw/1198 * -10)) rotate(1deg) } }
+  .pop{ position:absolute; inset:0; will-change:transform, opacity; }
+  .glow{ position:absolute; border-radius:50%; opacity:0; pointer-events:none;
+         background:radial-gradient(circle, var(--card-glow) 0%, rgba(255,255,255,.35) 45%, rgba(255,255,255,0) 70%); }
+
+  /* students: limbs swing with CSS, position along the path with rAF */
+  .student{ position:absolute; left:0; top:0; will-change:transform, opacity; transform-origin:50% 100%; }
+  .student svg{ display:block; width:100%; height:100%; overflow:visible; }
+  .student .leg, .student .arm{ transform-box:view-box; }
+  .student .leg.l1{ animation:legA var(--cyc) ease-in-out infinite; transform-origin:20px 46px; }
+  .student .leg.l2{ animation:legB var(--cyc) ease-in-out infinite; transform-origin:20px 46px; }
+  .student .arm.a1{ animation:legB var(--cyc) ease-in-out infinite; transform-origin:20px 23px; --sw:18deg; }
+  .student .arm.a2{ animation:legA var(--cyc) ease-in-out infinite; transform-origin:20px 23px; --sw:18deg; }
+  .student .bob{ animation:bob calc(var(--cyc) / 2) ease-in-out infinite; }
+  .student .bag{ animation:bag calc(var(--cyc) / 2) ease-in-out infinite; transform-box:view-box; transform-origin:10px 22px; }
+  @keyframes legA{ 0%,100%{ transform:rotate(var(--sw,22deg)) } 50%{ transform:rotate(calc(var(--sw,22deg) * -1)) } }
+  @keyframes legB{ 0%,100%{ transform:rotate(calc(var(--sw,22deg) * -1)) } 50%{ transform:rotate(var(--sw,22deg)) } }
+  @keyframes bob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-1.2px) } }
+  @keyframes bag{ 0%,100%{ transform:rotate(0) } 50%{ transform:rotate(-3deg) translateY(.6px) } }
+
+  .particle{ position:absolute; left:0; top:0; will-change:transform, opacity; pointer-events:none; }
+
+  .static *{ animation:none !important; transition:none !important; }
+  .static .leafy{ filter:none; }
+
+  .replay{ font:500 13px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--btn-text); background:#fff;
+           border:1px solid var(--btn-border); border-radius:999px; padding:9px 16px 9px 13px; cursor:pointer;
+           display:inline-flex; align-items:center; gap:7px; box-shadow:0 2px 8px rgba(40,70,160,.08); transition:color .2s; }
+  .replay:hover{ color:#3150c8; }
+  .replay:focus-visible{ outline:2px solid #3150c8; outline-offset:3px; }
+  .replay svg{ width:14px; height:14px; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="hero" id="hero" role="img" aria-label="A modern school building on a bright morning. Clouds drift, leaves sway, students walk up the steps into the school, and three cards (a chart, a group of people and a graduation cap) rise from behind the roof."></div>
+</div>
+
+<button class="replay" id="replay" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+  Replay
+</button>
+
+<!-- leaf flutter: gentle turbulence displacement, used only on the foliage overlays -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="flutter" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence id="flutterTurb" type="fractalNoise" baseFrequency="0.02 0.03" numOctaves="2" seed="3" result="n"/>
+    <feDisplacementMap id="flutterDisp" in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<script>
+/* ============================================================
+   Timings and strengths (easy to tweak)
+   ============================================================ */
+const EMAIL_MODE    = new URLSearchParams(location.search).has('email');   // email GIF recording: everything repeats every 8s
+const LOOP          = 8000;                       // email mode only: the period everything shares
+const INTRO_TIME    = EMAIL_MODE ? 0 : 800;       // scene fade-in
+const CARDS_DELAY   = EMAIL_MODE ? 1000 : 6000;   // first card pop, from the start
+const CARD_STAGGER  = 220;                        // chart, people, cap
+const CARD_POP_TIME = 900;
+const HOLD_TIME     = EMAIL_MODE ? 3800 : 7000;   // cards on show
+const RETREAT_TIME  = 600;
+const RETREAT_STAGGER = 120;
+const GAP_TIME      = EMAIL_MODE ? 1720 : 4000;   // cards hidden before popping again
+const CLOUD_SPEED   = 1;                          // >1 faster drift
+const WIND_SPEED    = 1;                          // >1 faster breeze
+const STUDENT_SPEED = 25;                         // px per second at a 600px-wide hero
+const STUDENT_COUNT = 5;
+const SHOW_EXTRA_CLOUDS = !EMAIL_MODE;            // faint extra clouds over the empty left sky (kept out of the email, where the headline sits)
+
+/* ============================================================
+   Layers on the 1198 x 800 canvas (generated by tools/*.py from the original image)
+   ============================================================ */
+const LAYERS = {
+  BASE:    { file:'assets/layers/base_clean.png', x:0, y:0, w:1198, h:800 },
+  NONSKY:  { file:'assets/layers/nonsky.png', x:0, y:369, w:1198, h:431 },
+  CLOUDS: [{ file:'assets/layers/cloud_1.png', x:728, y:335, w:245, h:196 }, { file:'assets/layers/cloud_2.png', x:1124, y:350, w:74, h:155 }, { file:'assets/layers/cloud_3.png', x:674, y:367, w:95, h:121 }, { file:'assets/layers/cloud_4.png', x:537, y:466, w:194, h:196 }, { file:'assets/layers/cloud_5.png', x:737, y:487, w:58, h:88 }],
+  CHART:  { card:{ file:'assets/layers/card-chart.png', x:972, y:60, w:195, h:189 }, bars:[{ file:'assets/layers/chart-bar-1.png', x:1029, y:170, w:15, h:25 }, { file:'assets/layers/chart-bar-2.png', x:1045, y:152, w:18, h:40 }, { file:'assets/layers/chart-bar-3.png', x:1064, y:130, w:21, h:58 }, { file:'assets/layers/chart-bar-4.png', x:1088, y:106, w:23, h:78 }] },
+  PEOPLE: { card:{ file:'assets/layers/card-people.png', x:852, y:209, w:171, h:167 }, left:{ file:'assets/layers/people-left.png', x:902, y:268, w:27, h:45 }, centre:{ file:'assets/layers/people-centre.png', x:918, y:266, w:40, h:57 }, right:{ file:'assets/layers/people-right.png', x:948, y:267, w:27, h:46 } },
+  CAP:    { card:{ file:'assets/layers/card-cap.png', x:1031, y:237, w:163, h:150 }, hat:{ file:'assets/layers/cap-hat.png', x:1078, y:285, w:68, h:53 }, tassel:{ file:'assets/layers/cap-tassel.png', x:1135, y:306, w:8, h:22 } },
+  FOLIAGE: [{ file:'assets/layers/foliage_tree_right.png', x:1083, y:454, w:115, h:248, amp:1.0 }, { file:'assets/layers/foliage_tree_medium.png', x:568, y:611, w:169, h:161, amp:1.0 }, { file:'assets/layers/foliage_trees_left.png', x:386, y:691, w:191, h:103, amp:0.8 }, { file:'assets/layers/foliage_plants_door.png', x:758, y:688, w:90, h:81, amp:0.6 }, { file:'assets/layers/foliage_plants_right.png', x:998, y:689, w:134, h:86, amp:0.6 }, { file:'assets/layers/foliage_hedges.png', x:390, y:738, w:372, h:62, amp:0.4 }],
+  FOREGROUND: { file:'assets/layers/foreground.png', x:600, y:748, w:162, h:52 },
+};
+// where each card hides: straight down so its top is 16 units under the highest roof point across its width (+ a nudge toward the building centre)
+const CARD_HIDE = { chart:{ dx:-24, dy:390, fdur:'3.4s', fdelay:'0s' }, people:{ dx:14, dy:280, fdur:'4.0s', fdelay:'-.9s' }, cap:{ dx:-22, dy:232, fdur:'4.6s', fdelay:'-1.8s' } };
+// students' walkway: up the entrance steps from below the frame, across the landing to the glass doors (feet points)
+const PATH = [ { x:792, y:822 }, { x:836, y:793 }, { x:872, y:773 }, { x:948, y:768 } ];
+const CW = 1198, CH = 800;
+
+/* ---------- helpers ---------- */
+const U = n => `calc(100cqw / ${CW} * ${n})`;
+const pct = (v, of) => (v / of * 100) + '%';
+const easeInOut = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const rand = (a, b) => a + Math.random() * (b - a);
+// a clock that stops while the tab is hidden, so everything resumes without jumps
+let hiddenTotal = 0, hiddenAt = 0, paused = false;
+const clockNow = () => (paused ? hiddenAt : performance.now()) - hiddenTotal;
+function sleep(ms){ const end = clockNow() + ms; return new Promise(r => { const c = () => clockNow() >= end ? r() : setTimeout(c, Math.min(50, Math.max(1, end - clockNow()))); c(); }); }
+document.addEventListener('visibilitychange', () => {
+  const anims = document.getAnimations();
+  if (document.visibilityState === 'hidden'){ hiddenAt = performance.now(); paused = true; anims.forEach(a => a.pause()); }
+  else { hiddenTotal += performance.now() - hiddenAt; paused = false; anims.forEach(a => a.play()); }
+});
+
+/* ---------- build ---------- */
+const hero = document.getElementById('hero');
+const scene = document.createElement('div'); scene.className = 'scene'; hero.appendChild(scene);
+function box(cls, parent, x, y, w, h, pw = CW, ph = CH){
+  const d = document.createElement('div'); d.className = 'abs ' + cls;
+  Object.assign(d.style, { left:pct(x, pw), top:pct(y, ph), width:pct(w, pw), height:pct(h, ph) });
+  parent.appendChild(d); return d;
+}
+function img(L, parent, ox = 0, oy = 0, pw = CW, ph = CH, cls = ''){
+  const i = new Image(); i.src = L.file; i.alt = ''; i.draggable = false; i.className = 'abs ' + cls;
+  Object.assign(i.style, { left:pct(L.x - ox, pw), top:pct(L.y - oy, ph), width:pct(L.w, pw), height:pct(L.h, ph) });
+  parent.appendChild(i); return i;
+}
+
+img(LAYERS.BASE, scene);                                                    // 1. clean plate (sky without clouds or cards)
+
+if (SHOW_EXTRA_CLOUDS){                                                     // 2. very faint extra clouds over the empty left sky
+  [[150, 250, 260, 70, .55, 52], [360, 140, 220, 60, .5, 64], [250, 420, 280, 80, .6, 44]].forEach(([x, y, w, h, o, d], i) => {
+    const c = box('cloud soft-cloud', scene, x, y, w, h); c.style.opacity = o;
+    Object.assign(c.style, { '--anim':'cloudDrift', '--dur':(d / CLOUD_SPEED) + 's', '--delay':(-d * (i + 1) / 3.1) + 's', '--ax':38, '--ay':3 });
+  });
+}
+// 3. the original clouds, each drifting on its own rhythm (bigger clouds move less). Email mode: everything repeats every 8s.
+const CLOUD_MOTION = EMAIL_MODE
+  ? [[8, 2, 8], [8, 0, 8], [10, 2, 8], [8, 2, 8], [10, 2, 8]]
+  : [[30, 3, 62], [22, 0, 48], [40, 3, 41], [32, 3, 70], [45, 3, 38]];        // [x amplitude, y amplitude, seconds]
+LAYERS.CLOUDS.forEach((L, i) => {
+  const c = img(L, scene, 0, 0, CW, CH, 'cloud');
+  const [ax, ay, dur] = CLOUD_MOTION[i];
+  const rightEdge = L.x + L.w >= CW - 1;                                    // touches the right border: only drifts right, so its edge never shows
+  Object.assign(c.style, { '--anim':rightEdge ? 'cloudDriftRight' : 'cloudDrift', '--dur':(dur / (EMAIL_MODE ? 1 : CLOUD_SPEED)) + 's',
+                           '--delay':(EMAIL_MODE ? -i * 1.6 : -dur * (i * .37 % 1)) + 's', '--ax':ax, '--ay':ay });
+});
+
+// 4. cards (behind the building: the building layer is drawn over them)
+const cardLayer = box('cards', scene, 0, 0, CW, CH); cardLayer.style.inset = '0';
+function cardGroup(name, def){
+  const L = def.card, hide = CARD_HIDE[name];
+  const fl = box('float', cardLayer, L.x, L.y, L.w, L.h);
+  fl.style.setProperty('--fdur', EMAIL_MODE ? ['4s', '8s', '4s'][['chart','people','cap'].indexOf(name)] : hide.fdur);
+  fl.style.setProperty('--fdelay', hide.fdelay);
+  const pop = document.createElement('div'); pop.className = 'pop'; fl.appendChild(pop);
+  const s = Math.max(L.w, L.h) * 1.3;
+  const glow = box('glow', pop, (L.w - s) / 2, (L.h - s) / 2, s, s, L.w, L.h);
+  img(L, pop, L.x, L.y, L.w, L.h);
+  const part = (P, origin) => { const i = img(P, pop, L.x, L.y, L.w, L.h); if (origin) i.style.transformOrigin = origin; return i; };
+  return { name, fl, pop, glow, hide, part };
+}
+const G = {
+  chart:  cardGroup('chart', LAYERS.CHART),
+  people: cardGroup('people', LAYERS.PEOPLE),
+  cap:    cardGroup('cap', LAYERS.CAP),
+};
+G.chart.bars    = LAYERS.CHART.bars.map(b => G.chart.part(b, '50% 100%'));
+G.people.icons  = ['centre','left','right'].map(k => G.people.part(LAYERS.PEOPLE[k], '50% 60%'));
+G.cap.hat       = G.cap.part(LAYERS.CAP.hat, '50% 80%');
+G.cap.tassel    = G.cap.part(LAYERS.CAP.tassel, '50% 0%');
+
+img(LAYERS.NONSKY, scene);                                                  // 5. the original building, trees and ground on top
+
+// 6. foliage overlays, the breeze travelling left to right (about 400ms between neighbours)
+const FOLIAGE_DUR = EMAIL_MODE ? [4, 4, 8/3, 4, 8/3, 4] : [6.4, 5.6, 7.2, 5.2, 6.0, 7.8];
+LAYERS.FOLIAGE.slice().sort((a, b) => a.x - b.x).forEach(L => {
+  const i = LAYERS.FOLIAGE.indexOf(L), order = [...LAYERS.FOLIAGE].sort((a, b) => a.x - b.x).indexOf(L);
+  const f = img(L, scene, 0, 0, CW, CH, 'leafy');
+  Object.assign(f.style, { '--amp':L.amp, '--dur':(FOLIAGE_DUR[i] / (EMAIL_MODE ? 1 : WIND_SPEED)) + 's', '--delay':(-0.4 * (6 - order)) + 's' });
+});
+
+// 7. students, 8. foreground (planter box and hedges in front of them), 9. drifting leaves
+const studentLayer = box('students', scene, 0, 0, CW, CH); studentLayer.style.inset = '0';
+img(LAYERS.FOREGROUND, scene);
+const particleLayer = box('particles', scene, 0, 0, CW, CH); particleLayer.style.inset = '0';
+
+/* ============================================================
+   Students: flat side-view SVG characters in school uniform, facing right
+   ============================================================ */
+const KIDS = [
+  { girl:false, skin:'#b77a4f', hair:'#1d1714', bag:'#1f3a6b', h:44, cyc:.82 },
+  { girl:true,  skin:'#8d5a3c', hair:'#1a1210', bag:'#7a2638', h:41, cyc:.76, style:'ponytail' },
+  { girl:false, skin:'#c98f5f', hair:'#2a1b14', bag:'#1f6f6a', h:43, cyc:.9 },
+  { girl:true,  skin:'#a86b45', hair:'#1d1714', bag:'#d47a2a', h:40, cyc:.8, style:'braids' },
+  { girl:false, skin:'#7c4a2d', hair:'#151110', bag:'#3b4a63', h:45, cyc:.94 },
+];
+function studentSVG(k){
+  const skin = k.skin, hair = k.hair;
+  const leg = cls => k.girl
+    ? `<g class="leg ${cls}"><rect x="17.6" y="46" width="4.8" height="22" rx="2.2" fill="${skin}"/><rect x="17.4" y="62" width="5.2" height="12" rx="1.5" fill="var(--sock)"/><path d="M16.6 73.5h8.6a3 3 0 0 1 0 5.2h-8.6z" fill="var(--shoe)"/></g>`
+    : `<g class="leg ${cls}"><rect x="16.8" y="44" width="6.4" height="30" rx="2.6" fill="var(--navy)"/><rect x="17.4" y="72" width="5.2" height="3" fill="var(--sock)"/><path d="M16.6 74h8.6a3 3 0 0 1 0 5h-8.6z" fill="var(--shoe)"/></g>`;
+  const arm = cls => `<g class="arm ${cls}"><rect x="17.3" y="21" width="5.4" height="9" rx="2.6" fill="var(--shirt)"/><rect x="17.9" y="28" width="4.2" height="15" rx="2" fill="${skin}"/></g>`;
+  const hairBack = k.style === 'ponytail' ? `<path d="M12.6 8.5c-4.2 1.4-5.6 6.6-3.6 11.6 1.4-1.2 2.6-4.6 4.4-6.6z" fill="${hair}"/>`
+                 : k.style === 'braids'   ? `<path d="M13.4 12c-1.6 4-1.6 9.6.2 13.6 1.4-.4 2.2-1.2 2.4-2.6-1.2-3.4-1.2-7.2-.4-10.6z" fill="${hair}"/>` : '';
+  const lower = k.girl
+    ? `<path d="M13.2 37h13.6l2.2 13H11z" fill="var(--navy)"/>`
+    : `<rect x="13.6" y="38.5" width="12.8" height="8" rx="2" fill="var(--navy)"/>`;
+  return `<svg viewBox="0 0 40 84" aria-hidden="true">
+    <ellipse cx="21" cy="79.2" rx="11" ry="2.2" fill="rgba(20,30,60,.22)"/>
+    <g class="bob">
+      ${leg('l2')}${arm('a2')}
+      <g class="bag"><rect x="5.4" y="19.5" width="9.6" height="18" rx="3" fill="${k.bag}"/><rect x="6.6" y="27" width="7.2" height="6" rx="1.6" fill="rgba(255,255,255,.14)"/></g>
+      <rect x="13" y="19" width="14" height="21" rx="4.2" fill="var(--shirt)"/>
+      <rect x="13" y="19" width="3.2" height="21" rx="1.6" fill="var(--shirt-shade)"/>
+      <path d="M22.8 20.5l1.6 1.2-.9 8.3-1.6-1.4.4-6.9z" fill="var(--tie)"/>
+      <rect x="14.6" y="21" width="1.8" height="15" rx=".9" fill="${k.bag}" opacity=".85"/>
+      ${lower}
+      ${k.girl ? '' : ''}${leg('l1')}
+      <rect x="18.4" y="15" width="4.2" height="5" fill="${skin}"/>
+      ${hairBack}
+      <circle cx="20.6" cy="9.8" r="7.2" fill="${skin}"/>
+      <path d="M13.4 9.6c0-5.4 4.2-8.4 8.4-8 4.2.4 6.6 3.6 6.4 6.2-2.4-1.6-6.2-1.8-8.6-1.2-.8 1.6-2.4 3.4-4.4 4.4-.8.6-1.6.6-1.8-1.4z" fill="${hair}"/>
+      <circle cx="25.4" cy="9.6" r=".9" fill="#1b1414"/>
+      <path d="M25 13.4c.9.4 1.8.3 2.4-.2" stroke="#5a2b22" stroke-width=".7" fill="none" stroke-linecap="round"/>
+      ${arm('a1')}
+    </g></svg>`;
+}
+const students = KIDS.slice(0, STUDENT_COUNT).map((k, i) => {
+  const el = document.createElement('div'); el.className = 'student';
+  const cyc = EMAIL_MODE ? [.8, 1, .8, 1, .8][i] : k.cyc;
+  el.style.setProperty('--cyc', cyc + 's');
+  el.innerHTML = studentSVG(k); el.style.opacity = 0; studentLayer.appendChild(el);
+  return { k, el, state:'waiting', t0:0, until:0, speed:STUDENT_SPEED * 2 * (0.92 + (i * 0.37 % 1) * 0.16), dir:0 };
+});
+// path lengths
+const SEG = PATH.slice(1).map((p, i) => Math.hypot(p.x - PATH[i].x, p.y - PATH[i].y));
+const PATH_LEN = SEG.reduce((a, b) => a + b, 0);
+function pointAt(d){
+  for (let i = 0; i < SEG.length; i++){
+    if (d <= SEG[i]){ const t = d / SEG[i]; return { x:PATH[i].x + (PATH[i + 1].x - PATH[i].x) * t, y:PATH[i].y + (PATH[i + 1].y - PATH[i].y) * t }; }
+    d -= SEG[i];
+  }
+  return { ...PATH[PATH.length - 1] };
+}
+function placeStudent(s, p, extraScale = 1){
+  const unit = hero.clientWidth / CW;
+  const persp = 1 + (p.y - 768) * 0.004;
+  const h = s.k.h * persp, w = h * 40 / 84;
+  s.el.style.width = (w * unit) + 'px'; s.el.style.height = (h * unit) + 'px';
+  // feet (21, 79 in the 40 x 84 viewBox) sit on the path point
+  const fx = (p.x - w * 21 / 40) * unit, fy = (p.y - h * 79 / 84) * unit;
+  s.el.style.transform = `translate(${fx}px, ${fy}px) scale(${extraScale})`;
+}
+
+/* ---------- drifting leaf particles ---------- */
+const LEAF_SVG = c => `<svg viewBox="0 0 10 6" width="100%" height="100%"><path d="M.5 3C2 .4 6 .2 9.5 3 6 5.8 2 5.6.5 3z" fill="${c}"/><path d="M1 3h8" stroke="rgba(0,0,0,.18)" stroke-width=".4"/></svg>`;
+const SOURCES = [{ x:1120, y:520 }, { x:1150, y:600 }, { x:650, y:650 }, { x:620, y:700 }, { x:470, y:720 }, { x:1100, y:560 }, { x:690, y:640 }];
+const particles = SOURCES.map((s, i) => {
+  const el = document.createElement('div'); el.className = 'particle';
+  el.innerHTML = LEAF_SVG(i % 2 ? 'var(--leaf)' : 'var(--leaf-dark)'); particleLayer.appendChild(el);
+  return { el, s, life:EMAIL_MODE ? 4000 : rand(5000, 8000), off:EMAIL_MODE ? i * 4000 / SOURCES.length : rand(0, 6000), dx:rand(60, 120), dy:rand(30, 70), spin:rand(180, 420) };
+});
+
+/* ---------- the one shared rAF loop: students, leaves, leaf flutter ---------- */
+const turb = document.getElementById('flutterTurb'), dispEl = document.getElementById('flutterDisp');
+let lastFilter = 0, nextSpawn = 0, ambientOn = false;
+function emailStudentSchedule(t){
+  // email mode: three students per 8s loop at fixed times, so the GIF loops seamlessly
+  const slots = [0, 2667, 5333], walk = PATH_LEN / (STUDENT_SPEED * 2) * 1000;
+  students.forEach((s, i) => {
+    if (i > 2){ s.el.style.opacity = 0; return; }
+    const local = ((t - slots[i]) % LOOP + LOOP) % LOOP;
+    if (local < walk){ placeStudent(s, pointAt(local / walk * PATH_LEN)); s.el.style.opacity = Math.min(1, local / 250); }
+    else if (local < walk + 400){ const k = (local - walk) / 400; placeStudent(s, PATH[PATH.length - 1], 1 - .08 * k); s.el.style.opacity = 1 - k; }
+    else s.el.style.opacity = 0;
+  });
+}
+function tick(){
+  const t = clockNow();
+  if (!paused && ambientOn){
+    const unit = hero.clientWidth / CW;
+    if (EMAIL_MODE) emailStudentSchedule(t);
+    else {
+      const visible = students.filter(s => s.state !== 'waiting').length;
+      if (t >= nextSpawn && visible < 3){
+        const s = students.find(s => s.state === 'waiting' && t >= s.until);
+        if (s){ s.state = 'walking'; s.t0 = t; nextSpawn = t + rand(2500, 3500); }
+      }
+      students.forEach(s => {
+        if (s.state === 'walking'){
+          const d = (t - s.t0) / 1000 * s.speed;
+          if (d >= PATH_LEN){ s.state = 'entering'; s.t0 = t; }
+          else { placeStudent(s, pointAt(d)); s.el.style.opacity = Math.min(1, (t - s.t0) / 250); }
+        }
+        if (s.state === 'entering'){                              // steps through the doors: fade + slight shrink
+          const k = Math.min(1, (t - s.t0) / 400);
+          placeStudent(s, PATH[PATH.length - 1], 1 - .08 * k); s.el.style.opacity = 1 - k;
+          if (k >= 1){ s.state = 'waiting'; s.until = t + rand(2000, 5000); }
+        }
+      });
+    }
+    // leaves: a gentle curved drift with the breeze, rotating, fading in and out, then respawning
+    particles.forEach(p => {
+      const local = ((t + p.off) % p.life) / p.life;
+      const x = p.s.x + p.dx * local + 10 * Math.sin(local * 6.283 * 1.5);
+      const y = p.s.y + p.dy * local - 14 * Math.sin(local * 3.1416);
+      p.el.style.width = (8 * unit) + 'px'; p.el.style.height = (5 * unit) + 'px';
+      p.el.style.transform = `translate(${x * unit}px, ${y * unit}px) rotate(${p.spin * local}deg)`;
+      p.el.style.opacity = Math.sin(local * 3.1416) * .9;
+    });
+    // leaf flutter: the turbulence drifts slowly (about 20 fps)
+    if (t - lastFilter > 50){
+      lastFilter = t;
+      const ph = EMAIL_MODE ? t / LOOP * 6.2832 : t / 1000 * 0.5 * WIND_SPEED;
+      turb.setAttribute('baseFrequency', `${(0.02 + 0.002 * Math.sin(ph)).toFixed(5)} ${(0.03 + 0.003 * Math.cos(ph)).toFixed(5)}`);
+      dispEl.setAttribute('scale', (3 * hero.clientWidth / 600 * 0.5 * 2).toFixed(2));
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ============================================================
+   Card cycle (Phases 0 to 3), async/await timeline
+   ============================================================ */
+let runId = 0; const running = new Set();
+function anim(el, frames, opts){ const a = el.animate(frames, { fill:'forwards', ...opts }); running.add(a); return a; }
+function cancelAll(){ running.forEach(a => a.cancel()); running.clear(); }
+const hiddenT = g => `translate(${U(g.hide.dx)}, ${U(g.hide.dy)}) scale(.6) rotate(-6deg)`;
+function setHidden(){
+  hero.classList.remove('idle');
+  for (const g of Object.values(G)){ g.pop.style.opacity = 0; g.pop.style.transform = hiddenT(g); g.glow.style.opacity = 0; }
+  G.chart.bars.forEach(b => b.style.transform = 'scaleY(0)');
+  G.people.icons.forEach(i => i.style.transform = 'scale(0)');
+}
+function setFinal(){
+  for (const g of Object.values(G)){ g.pop.style.opacity = 1; g.pop.style.transform = 'none'; g.glow.style.opacity = 0; }
+  G.chart.bars.forEach(b => b.style.transform = 'none');
+  G.people.icons.forEach(i => i.style.transform = 'none');
+}
+function popCard(g, delay){
+  anim(g.pop, [
+    { transform:hiddenT(g), opacity:0, offset:0 },
+    { opacity:1, offset:.3 },                                      // fully visible by the time it clears the roofline
+    { transform:'translate(0,0) scale(1.05) rotate(0deg)', offset:.8 },
+    { transform:'translate(0,0) scale(1) rotate(0deg)', opacity:1 }
+  ], { duration:CARD_POP_TIME, delay, easing:'cubic-bezier(0.34, 1.35, 0.64, 1)' });
+  anim(g.glow, [{ opacity:0 }, { opacity:.35, offset:.5 }, { opacity:0 }], { duration:700, delay:delay + CARD_POP_TIME * .35, easing:'ease-out' });
+}
+function cardDetails(){
+  const land = CARD_POP_TIME * .7;
+  G.chart.bars.forEach((b, i) => anim(b, [{ transform:'scaleY(0)' }, { transform:'scaleY(1)' }], { duration:380, delay:land + i * 70, easing:'cubic-bezier(.2,.8,.3,1.1)' }));
+  G.people.icons.forEach((ic, i) => anim(ic, [{ transform:'scale(0)' }, { transform:'scale(1.1)', offset:.7 }, { transform:'scale(1)' }], { duration:360, delay:CARD_STAGGER + land + i * 120, easing:'ease-out' }));
+  anim(G.cap.hat, [{ transform:'none' }, { transform:`rotate(-4deg) translateY(${U(-4)})`, offset:.3 }, { transform:`rotate(4deg) translateY(${U(-4)})`, offset:.65 }, { transform:'none' }], { duration:500, delay:CARD_STAGGER * 2 + land, easing:'ease-in-out' });
+  anim(G.cap.tassel, [{ transform:'rotate(0)' }, { transform:'rotate(18deg)', offset:.35 }, { transform:'rotate(-10deg)', offset:.7 }, { transform:'rotate(0)' }], { duration:700, delay:CARD_STAGGER * 2 + land, easing:'ease-in-out' });
+}
+function retreatCards(){
+  const order = [G.cap, G.people, G.chart];
+  order.forEach((g, i) => anim(g.pop, [
+    { transform:'translate(0,0) scale(1) rotate(0deg)', opacity:1 },
+    { opacity:1, offset:.75 },
+    { transform:hiddenT(g), opacity:0 }
+  ], { duration:RETREAT_TIME, delay:i * RETREAT_STAGGER, easing:'cubic-bezier(.5,0,.75,0)' }));
+  return sleep(RETREAT_TIME + (order.length - 1) * RETREAT_STAGGER);
+}
+async function play(){
+  const id = ++runId;
+  cancelAll(); hero.classList.remove('static'); setHidden();
+  if (INTRO_TIME) anim(scene, [{ opacity:0 }, { opacity:1 }], { duration:INTRO_TIME, easing:'ease-out' });    // Phase 0
+  await sleep(CARDS_DELAY); if (id !== runId) return;                                                         // Phase 1: ambient only
+  while (id === runId){
+    popCard(G.chart, 0); popCard(G.people, CARD_STAGGER); popCard(G.cap, CARD_STAGGER * 2); cardDetails();    // Phase 2
+    await sleep(CARD_STAGGER * 2 + CARD_POP_TIME + 300); if (id !== runId) return;
+    cancelAll(); setFinal(); hero.classList.add('idle');                                                       // Phase 3
+    await sleep(HOLD_TIME); if (id !== runId) return;
+    hero.classList.remove('idle');
+    await retreatCards(); if (id !== runId) return;
+    cancelAll(); setHidden();
+    await sleep(GAP_TIME); if (id !== runId) return;
+  }
+}
+
+/* ---------- start ---------- */
+const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+function showStatic(){
+  runId++; cancelAll(); ambientOn = false;
+  hero.classList.remove('idle'); hero.classList.add('static'); setFinal();
+  students.forEach(s => s.el.style.opacity = 0); particles.forEach(p => p.el.style.opacity = 0);
+}
+document.getElementById('replay').addEventListener('click', () => reduce.matches ? showStatic() : play());
+if (reduce.matches) showStatic();
+else { ambientOn = true; requestAnimationFrame(tick); play(); }
+</script>
+</body>
+</html>

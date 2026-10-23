@@ -1,0 +1,57 @@
+{
+ "tree_right": {
+  "file": "assets/layers/foliage_tree_right.png",
+  "x": 1083,
+  "y": 454,
+  "w": 115,
+  "h": 248,
+  "amp": 1.0
+ },
+ "tree_medium": {
+  "file": "assets/layers/foliage_tree_medium.png",
+  "x": 568,
+  "y": 611,
+  "w": 169,
+  "h": 161,
+  "amp": 1.0
+ },
+ "trees_left": {
+  "file": "assets/layers/foliage_trees_left.png",
+  "x": 386,
+  "y": 691,
+  "w": 191,
+  "h": 103,
+  "amp": 0.8
+ },
+ "plants_door": {
+  "file": "assets/layers/foliage_plants_door.png",
+  "x": 758,
+  "y": 688,
+  "w": 90,
+  "h": 81,
+  "amp": 0.6
+ },
+ "plants_right": {
+  "file": "assets/layers/foliage_plants_right.png",
+  "x": 998,
+  "y": 689,
+  "w": 134,
+  "h": 86,
+  "amp": 0.6
+ },
+ "hedges": {
+  "file": "assets/layers/foliage_hedges.png",
+  "x": 390,
+  "y": 738,
+  "w": 372,
+  "h": 62,
+  "amp": 0.4
+ },
+ "foreground": {
+  "file": "assets/layers/foreground.png",
+  "x": 600,
+  "y": 748,
+  "w": 162,
+  "h": 52
+ }
+}
