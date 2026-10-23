@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intellicamp – Student Welcome Hero</title>
+<style>
+  /* ============================================================
+     Colours
+     ============================================================ */
+  :root{
+    --page:#ffffff;
+    --bulb-glow:rgba(140,190,255,.9);
+    --card-glow:rgba(255,255,255,.95);
+    --btn-text:#4a5878;
+    --btn-border:rgba(80,110,200,.22);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh; background:var(--page);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:24px 16px;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+
+  /* ============================================================
+     Scene: everything sits on the 1198 x 800 canvas of the original image.
+     1 design unit = 100cqw / 1198. The clip copies the image's own rounded bottom corners (radius 233 units).
+     ============================================================ */
+  .stage{ width:min(100%, 760px); container-type:inline-size; }
+  .hero{
+    position:relative; width:100%; aspect-ratio:1198 / 800; overflow:hidden; isolation:isolate;
+    border-radius:0 0 19.45% 19.45% / 0 0 29.125% 29.125%;
+    background:#eaf3fd;
+  }
+  .abs{ position:absolute; display:block; }
+  .abs > img, img.abs{ width:100%; height:100%; display:block; user-select:none; -webkit-user-drag:none; }
+
+  /* --- background drift (whole plate, slow and calm; the plate has 24 units of spare edge) --- */
+  .bg{ will-change:transform, filter; animation:bgDrift calc(20s * var(--blob-speed,1)) ease-in-out infinite alternate,
+                                                bgGlow calc(22s * var(--blob-speed,1)) ease-in-out infinite alternate; }
+  @keyframes bgDrift{
+    0%  { transform:translate(0,0) scale(1) }
+    35% { transform:translate(calc(100cqw / 1198 * 9), calc(100cqw / 1198 * -6)) scale(1.012) }
+    70% { transform:translate(calc(100cqw / 1198 * -7), calc(100cqw / 1198 * 5)) scale(1.008) }
+    100%{ transform:translate(calc(100cqw / 1198 * 5), calc(100cqw / 1198 * 7)) scale(1.014) }
+  }
+  @keyframes bgGlow{ 0%{ filter:brightness(1) } 100%{ filter:brightness(1.03) saturate(1.04) } }
+
+  /* --- the boy: breathing + a very slow sway, origin at his feet --- */
+  .boy-breathe{ position:absolute; inset:0; transform-origin:69% 100%; will-change:transform;
+                animation:breathe 4s ease-in-out infinite; }
+  .boy-sway{ position:absolute; inset:0; transform-origin:69% 100%; will-change:transform;
+             animation:sway 7s ease-in-out infinite; }
+  @keyframes breathe{ 0%,100%{ transform:translateY(0) scale(1) } 50%{ transform:translateY(calc(100cqw / 1198 * -2)) scale(1.006) } }
+  @keyframes sway{ 0%,100%{ transform:rotate(0deg) } 25%{ transform:rotate(.35deg) } 75%{ transform:rotate(-.35deg) } }
+
+  /* --- hair: three overlays, each swaying from its scalp side, with a travelling phase offset --- */
+  .hair{ will-change:transform; filter:url(#hairWave); }
+  .hair-top  { animation:hairTop   calc(5.5s / var(--hair-speed,1)) ease-in-out infinite alternate; }
+  .hair-left { animation:hairLeft  calc(6.5s / var(--hair-speed,1)) ease-in-out -500ms infinite alternate; }
+  .hair-right{ animation:hairRight calc(6s   / var(--hair-speed,1)) ease-in-out -900ms infinite alternate; }
+  @keyframes hairTop  { from{ transform:translateX(calc(100cqw / 1198 * -2.4 * var(--hair-amp,1))) rotate(calc(-1deg * var(--hair-amp,1))) skewX(calc(-1.4deg * var(--hair-amp,1))) }
+                        to  { transform:translateX(calc(100cqw / 1198 *  2.4 * var(--hair-amp,1))) rotate(calc( 1deg * var(--hair-amp,1))) skewX(calc( 1.4deg * var(--hair-amp,1))) } }
+  @keyframes hairLeft { from{ transform:translateX(calc(100cqw / 1198 * -3 * var(--hair-amp,1))) rotate(calc(-1.2deg * var(--hair-amp,1))) }
+                        to  { transform:translateX(calc(100cqw / 1198 *  3 * var(--hair-amp,1))) rotate(calc( 1.2deg * var(--hair-amp,1))) } }
+  @keyframes hairRight{ from{ transform:translateX(calc(100cqw / 1198 * -2.6 * var(--hair-amp,1))) rotate(calc(-.9deg * var(--hair-amp,1))) }
+                        to  { transform:translateX(calc(100cqw / 1198 *  2.6 * var(--hair-amp,1))) rotate(calc( .9deg * var(--hair-amp,1))) } }
+
+  /* --- floating elements: outer = idle float, inner = pop / retreat --- */
+  .float{ will-change:transform; }
+  .idle .float{ animation:float var(--dur,4s) ease-in-out var(--delay,0s) infinite; }
+  @keyframes float{ 0%,100%{ transform:translateY(0) rotate(0deg) } 50%{ transform:translateY(calc(100cqw / 1198 * -10)) rotate(1deg) } }
+  .pop{ position:absolute; inset:0; will-change:transform, opacity; }
+  .glow{ position:absolute; border-radius:50%; pointer-events:none; opacity:0;
+         background:radial-gradient(circle, var(--card-glow) 0%, rgba(255,255,255,.4) 40%, rgba(255,255,255,0) 70%); }
+  .bulb-glow{ background:radial-gradient(circle, var(--bulb-glow) 0%, rgba(170,210,255,.45) 35%, rgba(170,210,255,0) 70%); }
+  .idle .ray{ animation:rayPulse 2.4s ease-in-out infinite; }
+  @keyframes rayPulse{ 0%,100%{ opacity:1 } 50%{ opacity:.7 } }
+  .idle .dot{ animation:twinkle 2.6s ease-in-out infinite; }
+  @keyframes twinkle{ 0%,100%{ opacity:1 } 50%{ opacity:.6 } }
+  .idle .plane-hover{ animation:hover 3s ease-in-out infinite; }
+  @keyframes hover{ 0%,100%{ transform:rotate(0deg) } 25%{ transform:rotate(3deg) } 75%{ transform:rotate(-3deg) } }
+
+  /* email recording: the photo stays still (only hair and elements move) */
+  .email .bg, .email .boy-breathe, .email .boy-sway{ animation:none !important; }
+
+  /* reduced motion / static: no animation, no displacement */
+  .static *{ animation:none !important; transition:none !important; }
+  .static .hair{ filter:none; }
+
+  /* Replay */
+  .replay{
+    font:500 13px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--btn-text);
+    background:#fff; border:1px solid var(--btn-border); border-radius:999px;
+    padding:9px 16px 9px 13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+    box-shadow:0 2px 8px rgba(40,70,160,.08); transition:color .2s;
+  }
+  .replay:hover{ color:#3150c8; }
+  .replay:focus-visible{ outline:2px solid #3150c8; outline-offset:3px; }
+  .replay svg{ width:14px; height:14px; }
+
+  body{ padding:0!important; display:block!important; min-height:0!important; }
+  .eframe{ position:relative; width:600px; height:380px; overflow:hidden; background:#fff; }
+  .eframe .stage{ position:absolute; left:-1px; top:-0.5px; width:602px; }
+  .eover{ position:absolute; left:0; top:0; width:600px; height:380px; z-index:10; pointer-events:none; }
+  .replay{ display:none!important; }
+</style>
+</head>
+<body>
+
+<div class="eframe"><div class="stage">
+  <div class="hero" id="hero" role="img" aria-label="A smiling student in a blue hoodie holding notebooks; a light bulb, a chart card, a list card, a paper plane, a dot grid and a circle pop up from behind him."></div>
+</div><img class="eover" src="assets/email-overlay.png" alt=""></div>
+
+<button class="replay" id="replay" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+  Replay
+</button>
+
+<!-- hair ripple: turbulence displacement, applied only to the three small hair layers -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="hairWave" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+    <feTurbulence id="hairTurb" type="fractalNoise" baseFrequency="0.012 0.04" numOctaves="2" seed="7" result="noise"/>
+    <feDisplacementMap id="hairDisp" in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<script>
+/* ============================================================
+   Timings and strengths (easy to tweak)
+   ============================================================ */
+const INTRO_TIME     = 800;    // scene fade-in
+const POP_DELAY      = 2200;   // first pop, from the start
+const POP_STAGGER    = 220;    // between bulb, chart, list, plane
+const POP_TIME       = 900;    // one element rising from behind the boy
+const EMAIL_MODE     = new URLSearchParams(location.search).has('email');   // email GIF recording: still photo, shorter pauses
+const HOLD_TIME      = EMAIL_MODE ? 3000 : 7000;   // elements on show
+const RETREAT_TIME   = 600;    // sliding back behind the boy
+const RETREAT_STAGGER= 120;
+const GAP_TIME       = EMAIL_MODE ? 1000 : 3000;   // hidden, before popping again
+const HAIR_SPEED     = 1;      // >1 faster breeze
+const HAIR_AMPLITUDE = 1;      // >1 stronger sway
+const HAIR_DISPLACE  = 3;      // strand ripple in px at a 600px-wide hero (max ~2.5px shift)
+const BLOB_SPEED     = 1;      // >1 slower background drift
+
+/* ============================================================
+   Layers on the 1198 x 800 canvas (generated by tools/*.py from the original image)
+   ============================================================ */
+/* CONFIG:START (generated by tools/build_config.py) */
+const LAYERS = {
+  BACKGROUND: { file:'assets/layers/background.jpg', x:-24, y:-24, w:1246, h:848 },
+  BOY:        { file:'assets/layers/boy.png', x:0, y:0, w:1198, h:800 },
+  HAIR_TOP: { file:'assets/layers/hair_top.png', x:715, y:83, w:240, h:198, origin:'50% 88%' },
+  HAIR_LEFT: { file:'assets/layers/hair_left.png', x:706, y:167, w:40, h:103, origin:'85% 4%' },
+  HAIR_RIGHT: { file:'assets/layers/hair_right.png', x:915, y:167, w:50, h:113, origin:'15% 4%' },
+  BULB:       { file:'assets/layers/bulb-body.png', x:674, y:66, w:49, h:72 },
+  BULB_RAYS: [{ file:'assets/layers/bulb-ray-1.png', x:655, y:64, w:17, h:14, origin:'94.1% 78.6%' }, { file:'assets/layers/bulb-ray-2.png', x:685, y:42, w:10, h:19, origin:'80.0% 94.7%' }, { file:'assets/layers/bulb-ray-3.png', x:714, y:50, w:15, h:18, origin:'6.7% 94.4%' }, { file:'assets/layers/bulb-ray-4.png', x:727, y:80, w:19, h:10, origin:'0.0% 80.0%' }, { file:'assets/layers/bulb-ray-5.png', x:653, y:96, w:18, h:11, origin:'94.4% 36.4%' }],
+  CHART_CARD: { file:'assets/layers/chart-card.png', x:946, y:4, w:191, h:181, tilt:-6.4 },
+  CHART_BARS: [{ file:'assets/layers/chart-mark-1.png', x:995, y:93, w:27, h:35 }, { file:'assets/layers/chart-mark-2.png', x:1023, y:72, w:29, h:52 }, { file:'assets/layers/chart-mark-3.png', x:1050, y:48, w:32, h:73 }],
+  LIST_CARD:  { file:'assets/layers/list-card.png', x:1005, y:206, w:182, h:181, tilt:7.5 },
+  LIST_LINES: [{ file:'assets/layers/list-mark-1.png', x:1056, y:253, w:77, h:24 }, { file:'assets/layers/list-mark-2.png', x:1053, y:274, w:76, h:24 }, { file:'assets/layers/list-mark-3.png', x:1051, y:295, w:76, h:24 }, { file:'assets/layers/list-mark-4.png', x:1048, y:316, w:47, h:20 }],
+  PLANE:      { file:'assets/layers/plane-glyph.png', x:1142, y:382, w:49, h:42 },
+  PLANE_TRAIL:{ file:'assets/layers/plane-trail.png', x:1092, y:418, w:53, h:42 },
+  DOTS: [{ file:'assets/layers/dot-1.png', x:1118, y:13, w:9, h:9 }, { file:'assets/layers/dot-2.png', x:1147, y:13, w:10, h:10 }, { file:'assets/layers/dot-3.png', x:1169, y:13, w:10, h:9 }, { file:'assets/layers/dot-4.png', x:1117, y:41, w:5, h:8 }, { file:'assets/layers/dot-5.png', x:1118, y:39, w:9, h:10 }, { file:'assets/layers/dot-6.png', x:1148, y:38, w:9, h:10 }, { file:'assets/layers/dot-7.png', x:1169, y:38, w:10, h:10 }],
+  CIRCLE:     { file:'assets/layers/el-circle.png', x:1097, y:97, w:101, h:154 },
+};
+// element groups: box on the canvas, where each hides behind the boy (from boy.png's alpha), idle float rhythm
+const GROUPS = {
+  dots:   { x:1117, y:13, w:62, h:36, hideDx:-244.3, hideDy:143.1, dur:'3.8s', delay:'-1.1s' },
+  circle: { x:1097, y:97, w:101, h:154, hideDx:-229.2, hideDy:39.4, dur:'4.6s', delay:'-2.4s' },
+  bulb:   { x:653, y:42, w:93, h:96, hideDx:79.9, hideDy:76.9, dur:'3.4s', delay:'0s' },
+  chart:  { x:946, y:4, w:191, h:181, hideDx:-137.8, hideDy:79.5, dur:'4.0s', delay:'-.8s' },
+  list:   { x:1005, y:206, w:182, h:181, hideDx:-124.3, hideDy:104.4, dur:'4.6s', delay:'-1.7s' },
+  plane:  { x:1092, y:382, w:99, h:78, hideDx:-60.8, hideDy:88.5, dur:'3.8s', delay:'-.4s' },
+};
+/* CONFIG:END */
+const CW = 1198, CH = 800;
+
+/* ---------- helpers ---------- */
+const U = n => `calc(100cqw / ${CW} * ${n})`;
+const pct = (v, of) => (v / of * 100) + '%';
+const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+const SPRING = 'cubic-bezier(0.34, 1.35, 0.64, 1)';
+
+// a clock that only runs while the tab is visible, so the timeline pauses and resumes without jumps
+let visibleTime = 0, lastTick = performance.now(), paused = false;
+function clockNow(){ return visibleTime + (paused ? 0 : performance.now() - lastTick); }
+function sleep(ms){
+  const end = clockNow() + ms;
+  return new Promise(res => { const chk = () => clockNow() >= end ? res() : setTimeout(chk, Math.min(50, end - clockNow())); chk(); });
+}
+document.addEventListener('visibilitychange', () => {
+  const anims = document.getAnimations();
+  if (document.visibilityState === 'hidden'){ visibleTime = clockNow(); paused = true; anims.forEach(a => a.pause()); }
+  else { lastTick = performance.now(); paused = false; anims.forEach(a => a.play()); }
+});
+
+/* ---------- build ---------- */
+const hero = document.getElementById('hero');
+hero.style.setProperty('--hair-speed', HAIR_SPEED);
+hero.style.setProperty('--hair-amp', HAIR_AMPLITUDE);
+hero.style.setProperty('--blob-speed', BLOB_SPEED);
+function img(L, parent, ox = 0, oy = 0, pw = CW, ph = CH, cls = ''){
+  const i = new Image(); i.src = L.file; i.alt = ''; i.draggable = false; i.className = 'abs ' + cls;
+  Object.assign(i.style, { left:pct(L.x - ox, pw), top:pct(L.y - oy, ph), width:pct(L.w, pw), height:pct(L.h, ph) });
+  if (L.origin) i.style.transformOrigin = L.origin;
+  parent.appendChild(i); return i;
+}
+function box(cls, parent, x, y, w, h, pw = CW, ph = CH){
+  const d = document.createElement('div'); d.className = 'abs ' + cls;
+  Object.assign(d.style, { left:pct(x, pw), top:pct(y, ph), width:pct(w, pw), height:pct(h, ph) });
+  parent.appendChild(d); return d;
+}
+
+const scene = box('scene', hero, 0, 0, CW, CH); scene.style.inset = '0';
+const bg = img(LAYERS.BACKGROUND, scene, 0, 0, CW, CH, 'bg');
+if (EMAIL_MODE) hero.classList.add('email');
+
+// elements live behind the boy
+const elLayer = box('elements', scene, 0, 0, CW, CH);
+const G = {};
+for (const [name, g] of Object.entries(GROUPS)){
+  const fl = box('float', elLayer, g.x, g.y, g.w, g.h);
+  fl.style.setProperty('--dur', g.dur); fl.style.setProperty('--delay', g.delay);
+  const pop = document.createElement('div'); pop.className = 'pop'; fl.appendChild(pop);
+  G[name] = { g, fl, pop, parts:{} };
+}
+const add = (name, L, cls) => img(L, G[name].pop, GROUPS[name].x, GROUPS[name].y, GROUPS[name].w, GROUPS[name].h, cls);
+// soft glows behind each element (inside its group so they move with it)
+for (const name of ['bulb','chart','list','plane']){
+  const g = GROUPS[name], s = Math.max(g.w, g.h) * 1.5;
+  const gl = box('glow' + (name === 'bulb' ? ' bulb-glow' : ''), G[name].pop, (g.w - s) / 2, (g.h - s) / 2, s, s, g.w, g.h);
+  G[name].glow = gl;
+}
+G.dots.parts.dots   = LAYERS.DOTS.map(L => add('dots', L, 'dot'));
+G.circle.parts.c    = add('circle', LAYERS.CIRCLE);
+G.bulb.parts.body   = add('bulb', LAYERS.BULB);
+G.bulb.parts.rays   = LAYERS.BULB_RAYS.map(L => add('bulb', L, 'ray'));
+G.chart.parts.card  = add('chart', LAYERS.CHART_CARD);
+G.chart.parts.bars  = LAYERS.CHART_BARS.map(L => { const i = add('chart', L); i.style.transformOrigin = '50% 100%'; return i; });
+G.list.parts.card   = add('list', LAYERS.LIST_CARD);
+G.list.parts.lines  = LAYERS.LIST_LINES.map(L => { const i = add('list', L); i.style.transformOrigin = '0% 30%'; return i; });
+G.plane.parts.trail = add('plane', LAYERS.PLANE_TRAIL);
+const planeWrap = box('plane-hover', G.plane.pop, LAYERS.PLANE.x - GROUPS.plane.x, LAYERS.PLANE.y - GROUPS.plane.y, LAYERS.PLANE.w, LAYERS.PLANE.h, GROUPS.plane.w, GROUPS.plane.h);
+G.plane.parts.glyph = img({ ...LAYERS.PLANE, x:0, y:0 }, planeWrap, 0, 0, LAYERS.PLANE.w, LAYERS.PLANE.h);
+
+// the boy, in front of everything, with the hair overlays on top of him
+const boyIntro = box('boy-intro', scene, 0, 0, CW, CH); boyIntro.style.inset = '0';
+const breathe = document.createElement('div'); breathe.className = 'boy-breathe'; boyIntro.appendChild(breathe);
+const sway = document.createElement('div'); sway.className = 'boy-sway'; breathe.appendChild(sway);
+img(LAYERS.BOY, sway);
+const hairTop   = img(LAYERS.HAIR_TOP,   sway, 0, 0, CW, CH, 'hair hair-top');
+const hairLeft  = img(LAYERS.HAIR_LEFT,  sway, 0, 0, CW, CH, 'hair hair-left');
+const hairRight = img(LAYERS.HAIR_RIGHT, sway, 0, 0, CW, CH, 'hair hair-right');
+
+/* ---------- hair ripple: one shared rAF loop drives the turbulence (about 20 fps) and the gusts ---------- */
+const turb = document.getElementById('hairTurb'), disp = document.getElementById('hairDisp');
+let gustStart = -1e9, nextGust = 7000 + Math.random() * 2000, lastFilterUpdate = 0;
+function ambient(){
+  const t = clockNow();
+  if (!paused && t - lastFilterUpdate > 50){
+    lastFilterUpdate = t;
+    const s = t / 1000 * HAIR_SPEED;
+    turb.setAttribute('baseFrequency', `${(0.012 + 0.0016 * Math.sin(s * 0.9)).toFixed(5)} ${(0.04 + 0.004 * Math.sin(s * 0.63 + 1)).toFixed(5)}`);
+    if (t > nextGust){ gustStart = t; nextGust = t + 7000 + Math.random() * 2000; }
+    const g = t - gustStart, gust = g < 1500 ? 1 + 0.6 * Math.sin(Math.PI * g / 1500) : 1;   // eases up to 1.6x and back
+    const scale = HAIR_DISPLACE * HAIR_AMPLITUDE * gust * (hero.clientWidth / 600);
+    disp.setAttribute('scale', scale.toFixed(2));
+    hero.style.setProperty('--hair-amp', (HAIR_AMPLITUDE * (1 + (gust - 1) * 0.5)).toFixed(3));
+  }
+  requestAnimationFrame(ambient);
+}
+
+/* ---------- WAAPI bookkeeping for the pop cycle ---------- */
+let runId = 0; const running = new Set();
+function anim(el, frames, opts){ const a = el.animate(frames, { fill:'forwards', ...opts }); running.add(a); return a; }
+function cancelAll(){ running.forEach(a => a.cancel()); running.clear(); }
+const hidden = n => `translate(${U(GROUPS[n].hideDx)}, ${U(GROUPS[n].hideDy)}) scale(.6) rotate(-6deg)`;
+function setHidden(){
+  for (const n in G){ G[n].pop.style.opacity = 0; G[n].pop.style.transform = hidden(n); }
+  G.bulb.parts.rays.forEach(r => { r.style.opacity = 0; r.style.transform = 'scale(0)'; });
+  G.chart.parts.bars.forEach(b => b.style.transform = `rotate(${LAYERS.CHART_CARD.tilt}deg) scaleY(0) rotate(${-LAYERS.CHART_CARD.tilt}deg)`);
+  G.list.parts.lines.forEach(l => l.style.transform = `rotate(${LAYERS.LIST_CARD.tilt}deg) scaleX(0) rotate(${-LAYERS.LIST_CARD.tilt}deg)`);
+  G.plane.parts.trail.style.clipPath = 'inset(0 100% 0 0)';
+  for (const n in G) if (G[n].glow) G[n].glow.style.opacity = 0;
+  hero.classList.remove('idle');
+}
+function setFinal(){
+  for (const n in G){ G[n].pop.style.opacity = 1; G[n].pop.style.transform = 'none'; }
+  G.bulb.parts.rays.forEach(r => { r.style.opacity = 1; r.style.transform = 'none'; });
+  G.chart.parts.bars.forEach(b => b.style.transform = 'none');
+  G.list.parts.lines.forEach(l => l.style.transform = 'none');
+  G.plane.parts.trail.style.clipPath = 'none';
+  for (const n in G) if (G[n].glow) G[n].glow.style.opacity = 0;
+  G.bulb.glow.style.opacity = 0.12;
+}
+
+/* one element rises from behind the boy to its place */
+function popUp(n, delay){
+  const el = G[n].pop;
+  el.style.opacity = 0;
+  anim(el, [
+    { transform:hidden(n), opacity:0, offset:0 },
+    { opacity:0, offset:.22 },                       // stays invisible while still covered by the boy
+    { opacity:1, offset:.45 },
+    { transform:'translate(0,0) scale(1.05) rotate(0deg)', offset:.82 },
+    { transform:'translate(0,0) scale(1) rotate(0deg)', opacity:1 }
+  ], { duration:POP_TIME, delay, easing:SPRING });
+  if (G[n].glow) anim(G[n].glow, [{ opacity:0 }, { opacity:.35, offset:.5 }, { opacity:0 }], { duration:700, delay:delay + POP_TIME * .35, easing:'ease-out' });
+}
+function details(n, at){
+  if (n === 'bulb'){
+    anim(G.bulb.glow, [{ opacity:0 }, { opacity:.5, offset:.4 }, { opacity:.12 }], { duration:900, delay:at, easing:'ease-out' });
+    G.bulb.parts.rays.forEach((r, i) => anim(r, [{ opacity:0, transform:'scale(0)' }, { opacity:1, transform:'scale(1)' }], { duration:260, delay:at + 120 + i * 80, easing:'ease-out' }));
+  }
+  if (n === 'chart') G.chart.parts.bars.forEach((b, i) => {
+    const t = LAYERS.CHART_CARD.tilt;
+    anim(b, [{ transform:`rotate(${t}deg) scaleY(0) rotate(${-t}deg)` }, { transform:'none' }], { duration:420, delay:at + i * 70, easing:'cubic-bezier(.2,.8,.3,1.1)' });
+  });
+  if (n === 'list') G.list.parts.lines.forEach((l, i) => {
+    const t = LAYERS.LIST_CARD.tilt;
+    anim(l, [{ transform:`rotate(${t}deg) scaleX(0) rotate(${-t}deg)` }, { transform:'none' }], { duration:420, delay:at + i * 100, easing:'cubic-bezier(.2,.8,.3,1)' });
+  });
+}
+/* the plane flies out along a curve while its dashed trail draws behind it */
+function flyPlane(delay, id){
+  return new Promise(res => setTimeout(() => {
+    if (id !== runId) return res();
+    const g = GROUPS.plane, el = G.plane.pop, glyph = planeWrap, trail = G.plane.parts.trail;
+    el.style.opacity = 1; el.style.transform = 'none';
+    const P0 = { x:g.hideDx, y:g.hideDy }, P2 = { x:0, y:0 }, P1 = { x:g.hideDx * .2 + 30, y:g.hideDy * .9 };
+    const t0 = clockNow(); let px = P0.x, py = P0.y;
+    const step = () => {
+      if (id !== runId) return res();
+      const t = Math.min(1, (clockNow() - t0) / 1000), e = easeOutCubic(t);
+      const x = (1-e)*(1-e)*P0.x + 2*(1-e)*e*P1.x + e*e*P2.x, y = (1-e)*(1-e)*P0.y + 2*(1-e)*e*P1.y + e*e*P2.y;
+      const ang = Math.atan2(y - py, x - px) * 180 / Math.PI + 40; px = x; py = y;     // nose follows the path
+      const s = .6 + .4 * easeOutCubic(Math.min(1, t * 1.6));
+      glyph.style.transform = `translate(${U(x)}, ${U(y)}) rotate(${t < 1 ? ang * (1 - e) : 0}deg) scale(${s})`;
+      glyph.style.opacity = Math.min(1, t / .2);
+      trail.style.clipPath = `inset(0 ${(100 * (1 - e)).toFixed(1)}% 0 0)`;
+      if (t < 1) requestAnimationFrame(step); else { glyph.style.transform = ''; glyph.style.opacity = 1; trail.style.clipPath = 'none'; res(); }
+    };
+    requestAnimationFrame(step);
+  }, delay));
+}
+/* everything slides back behind the boy (reverse of the pop) */
+function retreat(){
+  const order = ['plane','list','chart','bulb','circle','dots'];
+  order.forEach((n, i) => {
+    anim(G[n].pop, [
+      { transform:'translate(0,0) scale(1) rotate(0deg)', opacity:1 },
+      { opacity:1, offset:.55 },
+      { transform:hidden(n), opacity:0 }
+    ], { duration:RETREAT_TIME, delay:i * RETREAT_STAGGER, easing:'cubic-bezier(.5,0,.75,0)' });
+  });
+  return sleep(RETREAT_TIME + (order.length - 1) * RETREAT_STAGGER);
+}
+
+/* ---------- the pop cycle (Phases 0 to 3) ---------- */
+async function play(){
+  const id = ++runId;
+  cancelAll(); hero.classList.remove('static'); setHidden();
+  anim(scene, [{ opacity:0 }, { opacity:1 }], { duration:INTRO_TIME, easing:'ease-out' });                       // Phase 0
+  anim(boyIntro, [{ transform:`translateY(${U(20)})` }, { transform:'translateY(0)' }], { duration:INTRO_TIME, easing:'cubic-bezier(.2,.8,.3,1)' });
+  await sleep(POP_DELAY); if (id !== runId) return;                                                              // Phase 1: just the boy
+  while (id === runId){
+    // Phase 2: bulb, chart (+ dots), list (+ circle), plane
+    popUp('bulb', 0);                     details('bulb',  POP_TIME * .7);
+    popUp('chart', POP_STAGGER);          details('chart', POP_STAGGER + POP_TIME * .7);
+    popUp('dots', POP_STAGGER);
+    popUp('list', POP_STAGGER * 2);       details('list',  POP_STAGGER * 2 + POP_TIME * .7);
+    popUp('circle', POP_STAGGER * 2);
+    const plane = flyPlane(POP_STAGGER * 3, id);
+    await Promise.all([plane, sleep(POP_STAGGER * 3 + 1000)]); if (id !== runId) return;
+    // Phase 3: idle, then hide and loop
+    cancelAll(); setFinal(); hero.classList.add('idle');
+    await sleep(HOLD_TIME); if (id !== runId) return;
+    hero.classList.remove('idle');
+    await retreat(); if (id !== runId) return;
+    cancelAll(); setHidden();
+    await sleep(GAP_TIME); if (id !== runId) return;
+  }
+}
+
+/* ---------- start ---------- */
+const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+function showStatic(){ runId++; cancelAll(); hero.classList.add('static'); setFinal(); hero.classList.remove('idle'); }
+document.getElementById('replay').addEventListener('click', () => reduce.matches ? showStatic() : play());
+if (reduce.matches) showStatic(); else { requestAnimationFrame(ambient); play(); }
+</script>
+</body>
+</html>

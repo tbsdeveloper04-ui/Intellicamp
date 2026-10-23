@@ -1,0 +1,213 @@
+{
+ "bulb": {
+  "file": "assets/layers/bulb-body.png",
+  "x": 674,
+  "y": 66,
+  "w": 49,
+  "h": 72,
+  "centre": [
+   699.9292141571685,
+   100.27294541091781
+  ]
+ },
+ "bulb_rays": [
+  {
+   "file": "assets/layers/bulb-ray-1.png",
+   "x": 655,
+   "y": 64,
+   "w": 17,
+   "h": 14,
+   "origin": [
+    94.1,
+    78.6
+   ]
+  },
+  {
+   "file": "assets/layers/bulb-ray-2.png",
+   "x": 685,
+   "y": 42,
+   "w": 10,
+   "h": 19,
+   "origin": [
+    80.0,
+    94.7
+   ]
+  },
+  {
+   "file": "assets/layers/bulb-ray-3.png",
+   "x": 714,
+   "y": 50,
+   "w": 15,
+   "h": 18,
+   "origin": [
+    6.7,
+    94.4
+   ]
+  },
+  {
+   "file": "assets/layers/bulb-ray-4.png",
+   "x": 727,
+   "y": 80,
+   "w": 19,
+   "h": 10,
+   "origin": [
+    0.0,
+    80.0
+   ]
+  },
+  {
+   "file": "assets/layers/bulb-ray-5.png",
+   "x": 653,
+   "y": 96,
+   "w": 18,
+   "h": 11,
+   "origin": [
+    94.4,
+    36.4
+   ]
+  }
+ ],
+ "chart": {
+  "card": {
+   "file": "assets/layers/chart-card.png",
+   "x": 946,
+   "y": 4,
+   "w": 191,
+   "h": 181
+  },
+  "marks": [
+   {
+    "file": "assets/layers/chart-mark-1.png",
+    "x": 995,
+    "y": 93,
+    "w": 27,
+    "h": 35
+   },
+   {
+    "file": "assets/layers/chart-mark-2.png",
+    "x": 1023,
+    "y": 72,
+    "w": 29,
+    "h": 52
+   },
+   {
+    "file": "assets/layers/chart-mark-3.png",
+    "x": 1050,
+    "y": 48,
+    "w": 32,
+    "h": 73
+   }
+  ]
+ },
+ "list": {
+  "card": {
+   "file": "assets/layers/list-card.png",
+   "x": 1005,
+   "y": 206,
+   "w": 182,
+   "h": 181
+  },
+  "marks": [
+   {
+    "file": "assets/layers/list-mark-1.png",
+    "x": 1056,
+    "y": 253,
+    "w": 77,
+    "h": 24
+   },
+   {
+    "file": "assets/layers/list-mark-2.png",
+    "x": 1053,
+    "y": 274,
+    "w": 76,
+    "h": 24
+   },
+   {
+    "file": "assets/layers/list-mark-3.png",
+    "x": 1051,
+    "y": 295,
+    "w": 76,
+    "h": 24
+   },
+   {
+    "file": "assets/layers/list-mark-4.png",
+    "x": 1048,
+    "y": 316,
+    "w": 47,
+    "h": 20
+   }
+  ]
+ },
+ "plane": {
+  "file": "assets/layers/plane-glyph.png",
+  "x": 1142,
+  "y": 382,
+  "w": 49,
+  "h": 42
+ },
+ "plane_trail": {
+  "file": "assets/layers/plane-trail.png",
+  "x": 1092,
+  "y": 418,
+  "w": 53,
+  "h": 42
+ },
+ "dots": [
+  {
+   "file": "assets/layers/dot-1.png",
+   "x": 1118,
+   "y": 13,
+   "w": 9,
+   "h": 9
+  },
+  {
+   "file": "assets/layers/dot-2.png",
+   "x": 1147,
+   "y": 13,
+   "w": 10,
+   "h": 10
+  },
+  {
+   "file": "assets/layers/dot-3.png",
+   "x": 1169,
+   "y": 13,
+   "w": 10,
+   "h": 9
+  },
+  {
+   "file": "assets/layers/dot-4.png",
+   "x": 1117,
+   "y": 41,
+   "w": 5,
+   "h": 8
+  },
+  {
+   "file": "assets/layers/dot-5.png",
+   "x": 1118,
+   "y": 39,
+   "w": 9,
+   "h": 10
+  },
+  {
+   "file": "assets/layers/dot-6.png",
+   "x": 1148,
+   "y": 38,
+   "w": 9,
+   "h": 10
+  },
+  {
+   "file": "assets/layers/dot-7.png",
+   "x": 1169,
+   "y": 38,
+   "w": 10,
+   "h": 10
+  }
+ ],
+ "circle": {
+  "file": "assets/layers/el-circle.png",
+  "x": 1097,
+  "y": 97,
+  "w": 101,
+  "h": 154
+ }
+}

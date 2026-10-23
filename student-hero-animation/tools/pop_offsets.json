@@ -1,0 +1,38 @@
+{
+ "bulb": {
+  "cx": 699.5,
+  "cy": 90.0,
+  "start_dx": 79.9,
+  "start_dy": 76.9
+ },
+ "chart": {
+  "cx": 1039.5,
+  "cy": 93.5,
+  "start_dx": -135.7,
+  "start_dy": 80.7
+ },
+ "list": {
+  "cx": 1095.5,
+  "cy": 294.5,
+  "start_dx": -123.7,
+  "start_dy": 106.6
+ },
+ "plane": {
+  "cx": 1141.5,
+  "cy": 421.0,
+  "start_dx": -60.8,
+  "start_dy": 88.5
+ },
+ "dots": {
+  "cx": 1148.0,
+  "cy": 31.0,
+  "start_dx": -244.3,
+  "start_dy": 143.1
+ },
+ "circle": {
+  "cx": 1155.0,
+  "cy": 173.0,
+  "start_dx": -236.7,
+  "start_dy": 40.4
+ }
+}
