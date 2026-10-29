@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intellicamp – Parent Welcome Hero</title>
+<style>
+  /* ============================================================
+     Colours
+     ============================================================ */
+  :root{
+    --page:#ffffff;
+    --peach-glow:rgba(251,194,138,.55);
+    --peach-soft:rgba(253,227,200,.6);
+    --screen-glow:rgba(170,205,255,.9);
+    --smile-warm:rgba(255,190,140,.95);
+    --card-glow:rgba(255,255,255,.95);
+    --btn-text:#7a5a3a; --btn-border:rgba(210,140,80,.3);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{ min-height:100vh; background:var(--page); display:flex; flex-direction:column; align-items:center; justify-content:center;
+        gap:18px; padding:24px 16px; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+
+  /* ============================================================
+     Scene on the 1198 x 800 canvas of the original image. 1 unit = 100cqw / 1198.
+     The clip copies the image's own rounded bottom corners.
+     ============================================================ */
+  .stage{ width:min(100%, 760px); container-type:inline-size; }
+  .hero{ position:relative; width:100%; aspect-ratio:1198 / 800; overflow:hidden; isolation:isolate;
+         border-radius:0 0 19.45% 19.45% / 0 0 29.125% 29.125%; background:#fdf3ea; }
+  .abs{ position:absolute; display:block; }
+  .abs > img, img.abs{ width:100%; height:100%; display:block; user-select:none; -webkit-user-drag:none; }
+  .fill{ position:absolute; inset:0; }
+
+  /* --- always-on: the orange background moves (the desk area at the bottom stays still) --- */
+  .bg-drift{ will-change:transform; animation:bgDrift calc(18s * var(--blob-speed,1)) ease-in-out -4s infinite alternate;
+             -webkit-mask:linear-gradient(to bottom, #000 62%, transparent 78%); mask:linear-gradient(to bottom, #000 62%, transparent 78%); }
+  @keyframes bgDrift{ 0%{ transform:translate(0,0) rotate(0) scale(1) }
+                      50%{ transform:translate(calc(100cqw/1198 * 14), calc(100cqw/1198 * -10)) rotate(.6deg) scale(1.02) }
+                      100%{ transform:translate(calc(100cqw/1198 * -12), calc(100cqw/1198 * 8)) rotate(-.4deg) scale(1.015) } }
+  /* soft peach blobs drifting on their own rhythms over the plate */
+  .blob{ position:absolute; border-radius:50%; will-change:transform; pointer-events:none;
+         animation:blob var(--dur) ease-in-out var(--delay) infinite alternate; }
+  @keyframes blob{ 0%  { transform:translate(calc(100cqw/1198 * -24), calc(100cqw/1198 * 18)) rotate(-4deg) scale(.96) }
+                   100%{ transform:translate(calc(100cqw/1198 * 24), calc(100cqw/1198 * -18)) rotate(4deg) scale(1.04) } }
+  .glow-drift{ position:absolute; inset:-10%; pointer-events:none; will-change:transform;
+               background:radial-gradient(40% 45% at 70% 35%, var(--peach-soft), transparent 70%);
+               animation:glowDrift calc(20s * var(--blob-speed,1)) ease-in-out infinite alternate; opacity:.5; }
+  @keyframes glowDrift{ 0%{ transform:translate(-4%, 2%) } 100%{ transform:translate(4%, -3%) } }
+  .email .bg-drift, .email .blob, .email .glow-drift{ animation:none !important; }
+  .email .blob, .email .glow-drift{ display:none; }
+
+  /* --- cards (behind the people): outer = idle float, inner = pop / retreat --- */
+  .float{ will-change:transform; }
+  .idle .float{ animation:cardFloat var(--fdur) ease-in-out var(--fdelay) infinite; }
+  @keyframes cardFloat{ 0%,100%{ transform:translateY(0) rotate(0) } 50%{ transform:translateY(calc(100cqw/1198 * -12)) rotate(1.2deg) } }
+  .pop{ position:absolute; inset:0; }
+  .popping{ will-change:transform, opacity; }
+  .card-glow{ position:absolute; border-radius:50%; opacity:0; pointer-events:none;
+              background:radial-gradient(circle, var(--card-glow) 0%, rgba(255,255,255,.35) 45%, rgba(255,255,255,0) 70%); }
+  .idle .spark{ animation:sparkPulse 1.8s ease-in-out infinite; }
+  @keyframes sparkPulse{ 0%,100%{ opacity:1 } 50%{ opacity:.55 } }
+
+  /* --- the people: intro, teaching motion and smile happen on .pose; idle breathing on .breathe --- */
+  .people-intro{ position:absolute; inset:0; }
+  .pose{ position:absolute; inset:0; transform-origin:71% 90%; }
+  .moving{ will-change:transform, filter; }
+  .breathe{ position:absolute; inset:0; transform-origin:71% 90%; }
+  .idle .breathe{ animation:breathe 4s ease-in-out infinite; }
+  @keyframes breathe{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.006) } }
+  .overlay{ position:absolute; border-radius:50%; opacity:0; pointer-events:none; }
+  .screen-glow{ background:radial-gradient(closest-side, var(--screen-glow), rgba(170,205,255,0)); mix-blend-mode:soft-light; }
+  .smile-warm{ background:radial-gradient(closest-side, var(--smile-warm), rgba(255,190,140,0)); mix-blend-mode:soft-light; }
+
+  .static *{ animation:none !important; transition:none !important; }
+
+  .replay{ font:500 13px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--btn-text); background:#fff;
+           border:1px solid var(--btn-border); border-radius:999px; padding:9px 16px 9px 13px; cursor:pointer;
+           display:inline-flex; align-items:center; gap:7px; box-shadow:0 2px 8px rgba(200,120,60,.1); transition:color .2s; }
+  .replay:hover{ color:#e0702a; }
+  .replay:focus-visible{ outline:2px solid #e0702a; outline-offset:3px; }
+  .replay svg{ width:14px; height:14px; }
+
+  body{ padding:0!important; display:block!important; min-height:0!important; }
+  .eframe{ position:relative; width:600px; height:380px; overflow:hidden; background:#fff; }
+  .eframe .stage{ position:absolute; left:-1px; top:-0.5px; width:602px; }
+  .eover{ position:absolute; left:0; top:0; width:600px; height:380px; z-index:10; pointer-events:none; }
+  .replay{ display:none!important; }
+</style>
+</head>
+<body>
+
+<div class="eframe"><div class="stage">
+  <div class="hero" id="hero" role="img" aria-label="A mother and her daughter smile at a laptop together; a progress chart, a heart and a graduation cap pop up behind them."></div>
+</div><img class="eover" src="assets/email-overlay.png" alt=""></div>
+
+<button class="replay" id="replay" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+  Replay
+</button>
+
+<script>
+/* ============================================================
+   Timings (ms) and strengths, easy to tweak
+   ============================================================ */
+const EMAIL_MODE    = new URLSearchParams(location.search).has('email');   // email GIF recording: still background, shorter hold
+const TEACH_TIME    = 2200;      // Phase 1: lean in + two nods
+const SMILE_TIME    = 900;       // Phase 2: tone warms, they lean together; cards fire at 60% of it
+const CARD_STAGGER  = 220;       // chart, heart, cap
+const CARD_POP_TIME = 800;
+const HOLD_TIME     = EMAIL_MODE ? 2600 : 4000;
+const RETREAT_TIME  = 500;
+const RETREAT_STAGGER = 100;
+const BLOB_SPEED    = 1;         // >1 slower background drift
+const INTRO_TIME    = 700;       // people fade in (first run and Replay only)
+
+/* ============================================================
+   Layers on the 1198 x 800 canvas (generated by tools/*.py from hero.png)
+   ============================================================ */
+const LAYERS = {
+  BACKGROUND: { file:'assets/layers/background.jpg', x:-24, y:-24, w:1246, h:848, z:1 },
+  DOTS:       { file:'assets/layers/dots.png', x:1097, y:4, w:81, h:79, z:2 },
+  SPARKS: [ { file:'assets/layers/spark-1-1.png', x:568, y:85, w:26, h:39, origin:'84.6% 87.2%', card:'chart' },
+            { file:'assets/layers/spark-1-2.png', x:552, y:111, w:32, h:24, origin:'87.5% 66.7%', card:'chart' },
+            { file:'assets/layers/spark-2-1.png', x:1146, y:213, w:25, h:39, origin:'20% 89.7%', card:'cap' },
+            { file:'assets/layers/spark-2-2.png', x:1158, y:238, w:31, h:24, origin:'16.1% 83.3%', card:'cap' } ],
+  CHART: { card:{ file:'assets/layers/card-chart.png', x:587, y:0, w:372, h:257 },
+           arrow:{ file:'assets/layers/chart-arrow.png', x:659, y:38, w:212, h:113 },
+           bars:[ { file:'assets/layers/chart-bar-1.png', x:666, y:158, w:32, h:38 }, { file:'assets/layers/chart-bar-2.png', x:701, y:137, w:34, h:51 },
+                  { file:'assets/layers/chart-bar-3.png', x:736, y:118, w:35, h:63 }, { file:'assets/layers/chart-bar-4.png', x:771, y:105, w:36, h:69 },
+                  { file:'assets/layers/chart-bar-5.png', x:806, y:91, w:39, h:76 },  { file:'assets/layers/chart-bar-6.png', x:846, y:72, w:41, h:87 } ],
+           centre:[774, 124], tilt:-11 },
+  HEART: { card:{ file:'assets/layers/card-heart.png', x:966, y:78, w:186, h:175 }, icon:{ file:'assets/layers/heart-icon.png', x:1027, y:140, w:68, h:59 }, centre:[1059, 163], tilt:7.8 },
+  CAP:   { card:{ file:'assets/layers/card-cap.png', x:1050, y:239, w:148, h:151 }, icon:{ file:'assets/layers/cap-icon.png', x:1092, y:288, w:66, h:55 }, centre:[1124, 314], tilt:10 },
+  PEOPLE:     { file:'assets/layers/people.png', x:0, y:0, w:1222, h:824, z:5 },      // right and bottom edges padded 24 units
+  FOREGROUND: { file:'assets/layers/foreground.png', x:0, y:567, w:1198, h:233, z:6 }, // laptop, desk, books, pencil cup (still)
+};
+// where each card hides (from its centre): a point well inside the people's silhouette, measured from people.png's alpha
+const CARD_HIDE = { chart:{ dx:21, dy:98, fdur:'3.2s', fdelay:'0s' }, heart:{ dx:-42, dy:184, fdur:'3.8s', fdelay:'-.9s' }, cap:{ dx:-89, dy:49, fdur:'4.4s', fdelay:'-1.7s' } };
+const FACES  = { x:700, y:230, w:440, h:300 };     // warm smile highlight, over both faces
+const SCREEN = { x:640, y:300, w:520, h:320 };     // light from the laptop screen falling on their faces (the lid faces away from us)
+const CW = 1198, CH = 800;
+
+/* ---------- helpers ---------- */
+const U = n => `calc(100cqw / ${CW} * ${n})`;
+const pct = (v, of) => (v / of * 100) + '%';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const hero = document.getElementById('hero');
+hero.style.setProperty('--blob-speed', BLOB_SPEED);
+if (EMAIL_MODE) hero.classList.add('email');
+function box(cls, parent, x, y, w, h, pw = CW, ph = CH){
+  const d = document.createElement('div'); d.className = 'abs ' + cls;
+  Object.assign(d.style, { left:pct(x, pw), top:pct(y, ph), width:pct(w, pw), height:pct(h, ph) });
+  parent.appendChild(d); return d;
+}
+function img(L, parent, ox = 0, oy = 0, pw = CW, ph = CH, cls = ''){
+  const i = new Image(); i.src = L.file; i.alt = ''; i.draggable = false; i.className = 'abs ' + cls;
+  Object.assign(i.style, { left:pct(L.x - ox, pw), top:pct(L.y - oy, ph), width:pct(L.w, pw), height:pct(L.h, ph) });
+  if (L.origin) i.style.transformOrigin = L.origin;
+  parent.appendChild(i); return i;
+}
+
+/* ---------- build, back to front ---------- */
+const scene = document.createElement('div'); scene.className = 'fill'; hero.appendChild(scene);
+img(LAYERS.BACKGROUND, scene);                                     // still copy (holds the desk area steady)
+img(LAYERS.BACKGROUND, scene, 0, 0, CW, CH, 'bg-drift');          // drifting copy, faded out over the desk area
+// soft peach blobs, each on its own rhythm (14s to 22s, never in sync)
+[[880, 120, 420, 360, 'var(--peach-glow)', 14, -3], [1060, 420, 360, 320, 'var(--peach-soft)', 17, -9], [600, 260, 380, 420, 'var(--peach-soft)', 22, -14]]
+  .forEach(([x, y, w, h, c, d, del]) => {
+    const b = box('blob', scene, x - w / 2, y - h / 2, w, h);
+    Object.assign(b.style, { background:`radial-gradient(closest-side, ${c}, transparent)`, opacity:.32,
+                             '--dur':(d * BLOB_SPEED) + 's', '--delay':del + 's' });
+  });
+const glow = document.createElement('div'); glow.className = 'glow-drift'; scene.appendChild(glow);
+
+const dots = img(LAYERS.DOTS, scene);
+const sparks = LAYERS.SPARKS.map(L => { const s = img(L, scene, 0, 0, CW, CH, 'spark'); return { el:s, L }; });
+
+function cardGroup(name, def){
+  const L = def.card, hide = CARD_HIDE[name];
+  const fl = box('float', scene, L.x, L.y, L.w, L.h);
+  fl.style.setProperty('--fdur', hide.fdur); fl.style.setProperty('--fdelay', hide.fdelay);
+  const pop = document.createElement('div'); pop.className = 'pop'; fl.appendChild(pop);
+  const s = Math.max(L.w, L.h) * 1.2;
+  const glowEl = box('card-glow', pop, (L.w - s) / 2, (L.h - s) / 2, s, s, L.w, L.h);
+  img(L, pop, L.x, L.y, L.w, L.h);
+  return { name, def, fl, pop, glow:glowEl, hide };
+}
+const G = { chart:cardGroup('chart', LAYERS.CHART), heart:cardGroup('heart', LAYERS.HEART), cap:cardGroup('cap', LAYERS.CAP) };
+const inCard = (g, L, origin) => { const i = img(L, g.pop, g.def.card.x, g.def.card.y, g.def.card.w, g.def.card.h); if (origin) i.style.transformOrigin = origin; return i; };
+G.chart.bars  = LAYERS.CHART.bars.map(b => inCard(G.chart, b, '50% 100%'));
+G.chart.arrow = inCard(G.chart, LAYERS.CHART.arrow, '0% 100%');
+G.heart.icon  = inCard(G.heart, LAYERS.HEART.icon, '50% 50%');
+G.cap.icon    = inCard(G.cap,   LAYERS.CAP.icon, '50% 60%');
+
+const intro = document.createElement('div'); intro.className = 'people-intro'; scene.appendChild(intro);
+const pose = document.createElement('div'); pose.className = 'pose'; intro.appendChild(pose);
+const breathe = document.createElement('div'); breathe.className = 'breathe'; pose.appendChild(breathe);
+img(LAYERS.PEOPLE, breathe);
+const screenGlow = box('overlay screen-glow', breathe, SCREEN.x, SCREEN.y, SCREEN.w, SCREEN.h);
+const smileWarm  = box('overlay smile-warm', breathe, FACES.x, FACES.y, FACES.w, FACES.h);
+img(LAYERS.FOREGROUND, scene);
+
+/* ============================================================
+   Timeline (async/await): Phase 1 teach -> Phase 2 smile -> Phase 3 cards at the smile peak -> Phase 4 idle, reverse, loop
+   ============================================================ */
+let runId = 0; const running = new Set();
+function anim(el, frames, opts){ const a = el.animate(frames, { fill:'forwards', ...opts }); running.add(a); return a; }
+function cancelAll(){ running.forEach(a => a.cancel()); running.clear(); }
+// attentive = the start of each loop (slightly cooler, sitting back a touch); smiling = the original photo, untouched
+const ATTENTIVE = 'saturate(.92) brightness(.97)', SMILING = 'saturate(1) brightness(1)';
+const BACK = 'rotate(-.8deg) scale(.994)', LEANED = 'rotate(.3deg) scale(.997)', TOGETHER = 'rotate(0deg) scale(1)';
+const hiddenT = g => `translate(${U(g.hide.dx)}, ${U(g.hide.dy)}) scale(.5) rotate(-6deg)`;
+
+function setStart(){
+  hero.classList.remove('idle');
+  pose.style.filter = ATTENTIVE; pose.style.transform = BACK;
+  for (const g of Object.values(G)){ g.pop.style.opacity = 0; g.pop.style.transform = hiddenT(g); g.glow.style.opacity = 0; }
+  G.chart.bars.forEach(b => b.style.transform = 'scaleY(0)');
+  G.chart.arrow.style.clipPath = 'inset(0 100% 0 0)';
+  sparks.forEach(s => { s.el.style.opacity = 0; s.el.style.transform = 'scale(0)'; });
+  dots.style.opacity = 0; screenGlow.style.opacity = 0; smileWarm.style.opacity = 0;
+}
+function setFinal(){
+  pose.style.filter = SMILING; pose.style.transform = TOGETHER;
+  for (const g of Object.values(G)){ g.pop.style.opacity = 1; g.pop.style.transform = 'none'; g.glow.style.opacity = 0; }
+  G.chart.bars.forEach(b => b.style.transform = 'none');
+  G.chart.arrow.style.clipPath = 'none';
+  sparks.forEach(s => { s.el.style.opacity = 1; s.el.style.transform = 'none'; });
+  dots.style.opacity = 1; screenGlow.style.opacity = 0; smileWarm.style.opacity = 0;
+}
+
+async function teach(id){                                                  // Phase 1
+  pose.classList.add('moving');
+  anim(pose, [{ transform:BACK }, { transform:LEANED }], { duration:900, easing:'ease-in-out' });
+  anim(screenGlow, [{ opacity:0 }, { opacity:.15, offset:.5 }, { opacity:0 }], { duration:TEACH_TIME, easing:'ease-in-out' });
+  await sleep(900); if (id !== runId) return;
+  for (let i = 0; i < 2; i++){                                             // two soft nods
+    anim(pose, [{ transform:LEANED }, { transform:`rotate(.9deg) translateY(${U(3)}) scale(.997)`, offset:.45 }, { transform:LEANED }], { duration:600, easing:'ease-in-out' });
+    await sleep(600 + (i === 0 ? 50 : 0)); if (id !== runId) return;
+  }
+}
+function smile(){                                                          // Phase 2 (returns at the smile peak)
+  anim(pose, [{ transform:LEANED, filter:ATTENTIVE }, { transform:'rotate(-.4deg) scale(1.012)', filter:'saturate(1.06) brightness(1.03)', offset:.6 }, { transform:TOGETHER, filter:SMILING }], { duration:SMILE_TIME + 600, easing:'ease-out' });
+  anim(smileWarm, [{ opacity:0 }, { opacity:.25, offset:.4 }, { opacity:0 }], { duration:SMILE_TIME + 900, easing:'ease-in-out' });
+  return sleep(SMILE_TIME * .6);
+}
+function popCard(g, delay){                                                // Phase 3
+  g.pop.classList.add('popping');
+  anim(g.pop, [
+    { transform:hiddenT(g), opacity:0, offset:0 },
+    { opacity:0, offset:.15 },                                             // still covered by the people
+    { opacity:1, offset:.45 },
+    { transform:'translate(0,0) scale(1.06) rotate(0deg)', offset:.8 },
+    { transform:'translate(0,0) scale(1) rotate(0deg)', opacity:1 }
+  ], { duration:CARD_POP_TIME, delay, easing:'cubic-bezier(0.34, 1.4, 0.64, 1)' });
+  anim(g.glow, [{ opacity:0 }, { opacity:.35, offset:.5 }, { opacity:0 }], { duration:700, delay:delay + CARD_POP_TIME * .3, easing:'ease-out' });
+}
+function cardDetails(){
+  const land = CARD_POP_TIME * .75;
+  G.chart.bars.forEach((b, i) => anim(b, [{ transform:'scaleY(0)' }, { transform:'scaleY(1)' }], { duration:380, delay:land * .6 + i * 60, easing:'cubic-bezier(.2,.8,.3,1.1)' }));
+  anim(G.chart.arrow, [{ clipPath:'inset(0 100% 0 0)' }, { clipPath:'inset(0 0% 0 0)' }], { duration:550, delay:land * .6 + 360, easing:'ease-out' });
+  anim(dots, [{ opacity:0 }, { opacity:.9, offset:.8 }, { opacity:1 }], { duration:600, delay:0, easing:'ease-out' });
+  const heartAt = CARD_STAGGER + land;
+  anim(G.heart.icon, [{ transform:'scale(1)' }, { transform:'scale(1.15)', offset:.2 }, { transform:'scale(1)', offset:.45 }, { transform:'scale(1.08)', offset:.65 }, { transform:'scale(1)' }], { duration:700, delay:heartAt, easing:'ease-in-out' });
+  const capAt = CARD_STAGGER * 2 + land;
+  anim(G.cap.icon, [{ transform:'none' }, { transform:`rotate(-4deg) translateY(${U(-2)})`, offset:.3 }, { transform:`rotate(4deg) translateY(${U(-2)})`, offset:.65 }, { transform:`translateY(${U(-2)})` }], { duration:500, delay:capAt, easing:'ease-in-out' });
+  sparks.forEach((s, i) => {
+    const at = (s.L.card === 'chart' ? land : capAt) + (i % 2) * 150;
+    anim(s.el, [{ opacity:0, transform:'scale(0)' }, { opacity:1, transform:'scale(1)' }], { duration:260, delay:at, easing:'ease-out' });
+  });
+}
+function reverse(){                                                        // Phase 4, second half
+  const order = [G.cap, G.heart, G.chart];
+  order.forEach((g, i) => anim(g.pop, [
+    { transform:'translate(0,0) scale(1) rotate(0deg)', opacity:1 },
+    { opacity:1, offset:.5 },
+    { transform:hiddenT(g), opacity:0 }
+  ], { duration:RETREAT_TIME, delay:i * RETREAT_STAGGER, easing:'cubic-bezier(.5,0,.75,0)' }));
+  sparks.forEach(s => anim(s.el, [{ opacity:1 }, { opacity:0 }], { duration:300, easing:'ease-in' }));
+  anim(dots, [{ opacity:1 }, { opacity:0 }], { duration:400, easing:'ease-in' });
+  anim(pose, [{ transform:TOGETHER, filter:SMILING }, { transform:BACK, filter:ATTENTIVE }], { duration:700, delay:150, easing:'ease-in-out' });
+  return sleep(Math.max(RETREAT_TIME + 2 * RETREAT_STAGGER, 850));
+}
+
+async function play(firstRun){
+  const id = ++runId;
+  cancelAll(); hero.classList.remove('static'); setStart();
+  if (firstRun && !EMAIL_MODE)
+    anim(intro, [{ opacity:0, transform:`translateY(${U(10)})` }, { opacity:1, transform:'translateY(0)' }], { duration:INTRO_TIME, easing:'ease-out' });
+  while (id === runId){
+    await teach(id); if (id !== runId) return;
+    await smile(); if (id !== runId) return;
+    popCard(G.chart, 0); popCard(G.heart, CARD_STAGGER); popCard(G.cap, CARD_STAGGER * 2); cardDetails();
+    await sleep(SMILE_TIME * .4); if (id !== runId) return;               // the rest of the smile
+    await sleep(CARD_STAGGER * 2 + CARD_POP_TIME + 300 - SMILE_TIME * .4); if (id !== runId) return;
+    // Phase 4: idle (cards float, people breathe), then reverse and loop
+    cancelAll(); setFinal(); hero.classList.add('idle');
+    for (const g of Object.values(G)) g.pop.classList.remove('popping');
+    pose.classList.remove('moving');
+    await sleep(HOLD_TIME); if (id !== runId) return;
+    hero.classList.remove('idle'); pose.classList.add('moving');
+    await reverse(); if (id !== runId) return;
+    cancelAll(); setStart();
+    await sleep(250); if (id !== runId) return;
+  }
+}
+
+/* ---------- start ---------- */
+const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+function showStatic(){ runId++; cancelAll(); hero.classList.remove('idle'); hero.classList.add('static'); setFinal(); }
+document.getElementById('replay').addEventListener('click', () => reduce.matches ? showStatic() : play(true));
+if (reduce.matches) showStatic(); else play(true);
+</script>
+</body>
+</html>

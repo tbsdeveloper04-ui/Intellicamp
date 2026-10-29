@@ -1,0 +1,177 @@
+{
+ "cards": {
+  "chart": {
+   "card": {
+    "file": "assets/layers/card-chart.png",
+    "x": 587,
+    "y": 0,
+    "w": 372,
+    "h": 257
+   },
+   "rect": [
+    773.9632130930612,
+    123.81074777017238,
+    312.50153915107944,
+    177.26727336987676,
+    -11.0,
+    19.499400070686445
+   ],
+   "arrow": {
+    "file": "assets/layers/chart-arrow.png",
+    "x": 659,
+    "y": 38,
+    "w": 212,
+    "h": 113
+   },
+   "bars": [
+    {
+     "file": "assets/layers/chart-bar-1.png",
+     "x": 666,
+     "y": 158,
+     "w": 32,
+     "h": 38
+    },
+    {
+     "file": "assets/layers/chart-bar-2.png",
+     "x": 701,
+     "y": 137,
+     "w": 34,
+     "h": 51
+    },
+    {
+     "file": "assets/layers/chart-bar-3.png",
+     "x": 736,
+     "y": 118,
+     "w": 35,
+     "h": 63
+    },
+    {
+     "file": "assets/layers/chart-bar-4.png",
+     "x": 771,
+     "y": 105,
+     "w": 36,
+     "h": 69
+    },
+    {
+     "file": "assets/layers/chart-bar-5.png",
+     "x": 806,
+     "y": 91,
+     "w": 39,
+     "h": 76
+    },
+    {
+     "file": "assets/layers/chart-bar-6.png",
+     "x": 846,
+     "y": 72,
+     "w": 41,
+     "h": 87
+    }
+   ]
+  },
+  "heart": {
+   "card": {
+    "file": "assets/layers/card-heart.png",
+    "x": 966,
+    "y": 78,
+    "w": 186,
+    "h": 175
+   },
+   "rect": [
+    1058.7759810638481,
+    163.14998249624705,
+    137.86040917750063,
+    122.35836915191587,
+    7.75,
+    13.459420606710745
+   ],
+   "icon": {
+    "file": "assets/layers/heart-icon.png",
+    "x": 1027,
+    "y": 140,
+    "w": 68,
+    "h": 59
+   }
+  },
+  "cap": {
+   "card": {
+    "file": "assets/layers/card-cap.png",
+    "x": 1050,
+    "y": 239,
+    "w": 148,
+    "h": 151
+   },
+   "rect": [
+    1124.1679571931775,
+    314.34594441163136,
+    99.2645050331073,
+    100.94475178880924,
+    10.0,
+    10.919095553641803
+   ],
+   "icon": {
+    "file": "assets/layers/cap-icon.png",
+    "x": 1092,
+    "y": 288,
+    "w": 66,
+    "h": 55
+   }
+  }
+ },
+ "sparks": [
+  {
+   "file": "assets/layers/spark-1-1.png",
+   "x": 568,
+   "y": 85,
+   "w": 26,
+   "h": 39,
+   "origin": [
+    84.6,
+    87.2
+   ],
+   "group": 0
+  },
+  {
+   "file": "assets/layers/spark-1-2.png",
+   "x": 552,
+   "y": 111,
+   "w": 32,
+   "h": 24,
+   "origin": [
+    87.5,
+    66.7
+   ],
+   "group": 0
+  },
+  {
+   "file": "assets/layers/spark-2-1.png",
+   "x": 1146,
+   "y": 213,
+   "w": 25,
+   "h": 39,
+   "origin": [
+    20.0,
+    89.7
+   ],
+   "group": 1
+  },
+  {
+   "file": "assets/layers/spark-2-2.png",
+   "x": 1158,
+   "y": 238,
+   "w": 31,
+   "h": 24,
+   "origin": [
+    16.1,
+    83.3
+   ],
+   "group": 1
+  }
+ ],
+ "dots": {
+  "file": "assets/layers/dots.png",
+  "x": 1097,
+  "y": 4,
+  "w": 81,
+  "h": 79
+ }
+}
