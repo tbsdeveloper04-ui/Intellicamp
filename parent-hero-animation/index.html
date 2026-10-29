@@ -54,7 +54,7 @@
   /* --- cards (behind the people): outer = idle float, inner = pop / retreat --- */
   .float{ will-change:transform; }
   .idle .float{ animation:cardFloat var(--fdur) ease-in-out var(--fdelay) infinite; }
-  @keyframes cardFloat{ 0%,100%{ transform:translateY(0) rotate(0) } 50%{ transform:translateY(calc(100cqw/1198 * -12)) rotate(1.2deg) } }
+  @keyframes cardFloat{ 0%,100%{ transform:translateY(0) rotate(0) } 50%{ transform:translateY(calc(100cqw/1198 * -16)) rotate(1.6deg) } }
   .pop{ position:absolute; inset:0; }
   .popping{ will-change:transform, opacity; }
   .card-glow{ position:absolute; border-radius:50%; opacity:0; pointer-events:none;
@@ -68,7 +68,7 @@
   .moving{ will-change:transform, filter; }
   .breathe{ position:absolute; inset:0; transform-origin:71% 90%; }
   .idle .breathe{ animation:breathe 4s ease-in-out infinite; }
-  @keyframes breathe{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(1.006) } }
+  @keyframes breathe{ 0%,100%{ transform:scale(1) } 50%{ transform:scale(var(--breathe, 1.006)) } }
   .overlay{ position:absolute; border-radius:50%; opacity:0; pointer-events:none; }
   .screen-glow{ background:radial-gradient(closest-side, var(--screen-glow), rgba(170,205,255,0)); mix-blend-mode:soft-light; }
   .smile-warm{ background:radial-gradient(closest-side, var(--smile-warm), rgba(255,190,140,0)); mix-blend-mode:soft-light; }
@@ -107,6 +107,14 @@ const HOLD_TIME     = EMAIL_MODE ? 2600 : 4000;
 const RETREAT_TIME  = 500;
 const RETREAT_STAGGER = 100;
 const BLOB_SPEED    = 1;         // >1 slower background drift
+// motion strength (canvas px are 1198-wide units; the email GIF is half that size)
+const SIT_BACK      = { rot:-2.2, dx:-6, dy:8, scale:.985 };   // loop start: sitting back, a touch cooler
+const LEAN          = { rot:1.3,  dx:6,  dy:4, scale:.995 };   // leaning in toward the laptop
+const NOD           = { rot:2.6,  dx:9,  dy:14 };              // bottom of each nod
+const SMILE_PEAK    = { rot:-1.3, scale:1.02 };                // leaning together at the smile peak
+const TONE_START    = 'saturate(.8) brightness(.93)';          // attentive tone
+const TONE_PEAK     = 'saturate(1.14) brightness(1.06)';       // smile peak (settles to the untouched photo)
+const SCREEN_GLOW   = .32, SMILE_WARM = .5, BREATHE = 1.012;
 const INTRO_TIME    = 700;       // people fade in (first run and Replay only)
 
 /* ============================================================
@@ -128,7 +136,7 @@ const LAYERS = {
   HEART: { card:{ file:'assets/layers/card-heart.png', x:966, y:78, w:186, h:175 }, icon:{ file:'assets/layers/heart-icon.png', x:1027, y:140, w:68, h:59 }, centre:[1059, 163], tilt:7.8 },
   CAP:   { card:{ file:'assets/layers/card-cap.png', x:1050, y:239, w:148, h:151 }, icon:{ file:'assets/layers/cap-icon.png', x:1092, y:288, w:66, h:55 }, centre:[1124, 314], tilt:10 },
   PEOPLE:     { file:'assets/layers/people.png', x:0, y:0, w:1222, h:824, z:5 },      // right and bottom edges padded 24 units
-  FOREGROUND: { file:'assets/layers/foreground.png', x:0, y:567, w:1198, h:233, z:6 }, // laptop, desk, books, pencil cup (still)
+  FOREGROUND: { file:'assets/layers/foreground.png', x:0, y:566, w:1198, h:234, z:6 }, // laptop, desk, books, pencil cup (still)
 };
 // where each card hides (from its centre): a point well inside the people's silhouette, measured from people.png's alpha
 const CARD_HIDE = { chart:{ dx:21, dy:98, fdur:'3.2s', fdelay:'0s' }, heart:{ dx:-42, dy:184, fdur:'3.8s', fdelay:'-.9s' }, cap:{ dx:-89, dy:49, fdur:'4.4s', fdelay:'-1.7s' } };
@@ -203,9 +211,10 @@ let runId = 0; const running = new Set();
 function anim(el, frames, opts){ const a = el.animate(frames, { fill:'forwards', ...opts }); running.add(a); return a; }
 function cancelAll(){ running.forEach(a => a.cancel()); running.clear(); }
 // attentive = the start of each loop (slightly cooler, sitting back a touch); smiling = the original photo, untouched
-const ATTENTIVE = 'saturate(.92) brightness(.97)', SMILING = 'saturate(1) brightness(1)';
-const BACK = 'rotate(-.8deg) scale(.994)', LEANED = 'rotate(.3deg) scale(.997)', TOGETHER = 'rotate(0deg) scale(1)';
-const hiddenT = g => `translate(${U(g.hide.dx)}, ${U(g.hide.dy)}) scale(.5) rotate(-6deg)`;
+const ATTENTIVE = TONE_START, SMILING = 'saturate(1) brightness(1)';
+const P = (o, sc = 1) => `translate(${U(o.dx || 0)}, ${U(o.dy || 0)}) rotate(${o.rot}deg) scale(${o.scale || sc})`;
+const BACK = P(SIT_BACK), LEANED = P(LEAN), NODDED = P(NOD, LEAN.scale), TOGETHER = P({ rot:0 });
+const hiddenT = g => `translate(${U(g.hide.dx)}, ${U(g.hide.dy)}) scale(.4) rotate(-8deg)`;
 
 function setStart(){
   hero.classList.remove('idle');
@@ -228,16 +237,16 @@ function setFinal(){
 async function teach(id){                                                  // Phase 1
   pose.classList.add('moving');
   anim(pose, [{ transform:BACK }, { transform:LEANED }], { duration:900, easing:'ease-in-out' });
-  anim(screenGlow, [{ opacity:0 }, { opacity:.15, offset:.5 }, { opacity:0 }], { duration:TEACH_TIME, easing:'ease-in-out' });
+  anim(screenGlow, [{ opacity:0 }, { opacity:SCREEN_GLOW, offset:.5 }, { opacity:0 }], { duration:TEACH_TIME, easing:'ease-in-out' });
   await sleep(900); if (id !== runId) return;
   for (let i = 0; i < 2; i++){                                             // two soft nods
-    anim(pose, [{ transform:LEANED }, { transform:`rotate(.9deg) translateY(${U(3)}) scale(.997)`, offset:.45 }, { transform:LEANED }], { duration:600, easing:'ease-in-out' });
+    anim(pose, [{ transform:LEANED }, { transform:NODDED, offset:.45 }, { transform:LEANED }], { duration:600, easing:'ease-in-out' });
     await sleep(600 + (i === 0 ? 50 : 0)); if (id !== runId) return;
   }
 }
 function smile(){                                                          // Phase 2 (returns at the smile peak)
-  anim(pose, [{ transform:LEANED, filter:ATTENTIVE }, { transform:'rotate(-.4deg) scale(1.012)', filter:'saturate(1.06) brightness(1.03)', offset:.6 }, { transform:TOGETHER, filter:SMILING }], { duration:SMILE_TIME + 600, easing:'ease-out' });
-  anim(smileWarm, [{ opacity:0 }, { opacity:.25, offset:.4 }, { opacity:0 }], { duration:SMILE_TIME + 900, easing:'ease-in-out' });
+  anim(pose, [{ transform:LEANED, filter:ATTENTIVE }, { transform:P(SMILE_PEAK), filter:TONE_PEAK, offset:.6 }, { transform:TOGETHER, filter:SMILING }], { duration:SMILE_TIME + 600, easing:'ease-out' });
+  anim(smileWarm, [{ opacity:0 }, { opacity:SMILE_WARM, offset:.4 }, { opacity:0 }], { duration:SMILE_TIME + 900, easing:'ease-in-out' });
   return sleep(SMILE_TIME * .6);
 }
 function popCard(g, delay){                                                // Phase 3
@@ -246,7 +255,7 @@ function popCard(g, delay){                                                // Ph
     { transform:hiddenT(g), opacity:0, offset:0 },
     { opacity:0, offset:.15 },                                             // still covered by the people
     { opacity:1, offset:.45 },
-    { transform:'translate(0,0) scale(1.06) rotate(0deg)', offset:.8 },
+    { transform:'translate(0,0) scale(1.1) rotate(0deg)', offset:.8 },
     { transform:'translate(0,0) scale(1) rotate(0deg)', opacity:1 }
   ], { duration:CARD_POP_TIME, delay, easing:'cubic-bezier(0.34, 1.4, 0.64, 1)' });
   anim(g.glow, [{ opacity:0 }, { opacity:.35, offset:.5 }, { opacity:0 }], { duration:700, delay:delay + CARD_POP_TIME * .3, easing:'ease-out' });
@@ -257,9 +266,9 @@ function cardDetails(){
   anim(G.chart.arrow, [{ clipPath:'inset(0 100% 0 0)' }, { clipPath:'inset(0 0% 0 0)' }], { duration:550, delay:land * .6 + 360, easing:'ease-out' });
   anim(dots, [{ opacity:0 }, { opacity:.9, offset:.8 }, { opacity:1 }], { duration:600, delay:0, easing:'ease-out' });
   const heartAt = CARD_STAGGER + land;
-  anim(G.heart.icon, [{ transform:'scale(1)' }, { transform:'scale(1.15)', offset:.2 }, { transform:'scale(1)', offset:.45 }, { transform:'scale(1.08)', offset:.65 }, { transform:'scale(1)' }], { duration:700, delay:heartAt, easing:'ease-in-out' });
+  anim(G.heart.icon, [{ transform:'scale(1)' }, { transform:'scale(1.25)', offset:.2 }, { transform:'scale(1)', offset:.45 }, { transform:'scale(1.12)', offset:.65 }, { transform:'scale(1)' }], { duration:700, delay:heartAt, easing:'ease-in-out' });
   const capAt = CARD_STAGGER * 2 + land;
-  anim(G.cap.icon, [{ transform:'none' }, { transform:`rotate(-4deg) translateY(${U(-2)})`, offset:.3 }, { transform:`rotate(4deg) translateY(${U(-2)})`, offset:.65 }, { transform:`translateY(${U(-2)})` }], { duration:500, delay:capAt, easing:'ease-in-out' });
+  anim(G.cap.icon, [{ transform:'none' }, { transform:`rotate(-8deg) translateY(${U(-4)})`, offset:.3 }, { transform:`rotate(7deg) translateY(${U(-4)})`, offset:.65 }, { transform:'none' }], { duration:650, delay:capAt, easing:'ease-in-out' });
   sparks.forEach((s, i) => {
     const at = (s.L.card === 'chart' ? land : capAt) + (i % 2) * 150;
     anim(s.el, [{ opacity:0, transform:'scale(0)' }, { opacity:1, transform:'scale(1)' }], { duration:260, delay:at, easing:'ease-out' });
@@ -302,6 +311,7 @@ async function play(firstRun){
 }
 
 /* ---------- start ---------- */
+hero.style.setProperty('--breathe', BREATHE);
 const reduce = matchMedia('(prefers-reduced-motion: reduce)');
 function showStatic(){ runId++; cancelAll(); hero.classList.remove('idle'); hero.classList.add('static'); setFinal(); }
 document.getElementById('replay').addEventListener('click', () => reduce.matches ? showStatic() : play(true));

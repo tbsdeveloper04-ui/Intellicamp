@@ -49,17 +49,19 @@ pink = cv2.morphologyEx(pink.astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), n
 a = np.maximum(a, cv2.GaussianBlur(pink.astype(np.float32), (0, 0), 0.8))
 # the people continue a little behind the laptop's top and left edges, so a small lean never shows a gap there
 lapd = cv2.dilate(lap.astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool)
-ext = np.zeros((H, W), np.float32)
+# EXT_IN: how far they continue behind the lid; EDGE: the lid's own soft edge rows/cols, kept still in the foreground
+EXT_IN, EDGE, SRC = 44, 4, 7
+ext = np.zeros((H, W), np.float32); edge_band = np.zeros((H, W), bool)
 for x in range(560, 1105):
     col = np.where(lap[:, x])[0]
     if len(col) == 0: continue
     y0 = col.min()
-    if a[max(y0 - 3, 0), x] > 0.9: ext[y0:min(y0 + 18, H), x] = 1
+    if a[max(y0 - SRC, 0), x] > 0.9: ext[y0 - EDGE:min(y0 + EXT_IN, H), x] = 1; edge_band[y0 - EDGE:y0, x] = True
 for y in range(570, 790):
     row = np.where(lap[y, :])[0]
     if len(row) == 0: continue
     x0_ = row.min()
-    if a[y, max(x0_ - 3, 0)] > 0.9: ext[y, x0_:x0_ + 14] = 1
+    if a[y, max(x0_ - SRC, 0)] > 0.9: ext[y, x0_ - EDGE:x0_ + EXT_IN] = 1; edge_band[y, x0_ - EDGE:x0_] = True
 a_body = a.copy()                                  # alpha before the hidden extension (used by the foreground)
 a = np.maximum(a, ext)
 gf = guided(cv2.cvtColor(I.astype(np.float32), cv2.COLOR_RGB2GRAY), a.astype(np.float32), 3, 1e-3)
@@ -90,12 +92,21 @@ near = lut[idx]; weak = (a > 0) & (a <= 0.04); F[weak] = I[ys[near[weak]], xs[ne
 w = np.clip((0.35 - a) / 0.35, 0, 1)[..., None] * soft[..., None]
 F = F * (1 - 0.5 * w) + I[ys[near], xs[near]] * 0.5 * w
 
+# hidden strip under the lid (and the lid's soft edge) takes the colour just outside the edge; visible people inside
+# the laptop outline (hands) are left alone
+hid = edge_band | (lap & (a_body < 0.5))
+ytop = np.full(W, H)
 for x in range(560, 1105):
-    col = np.where(ext[:, x] > 0)[0]
-    if len(col): F[col, x] = F[max(col.min() - 3, 0), x]
-for y in range(570, 790):
-    row = np.where(ext[y, :] > 0)[0]
-    if len(row): F[y, row] = np.where((ext[y, row] > 0)[:, None] & (F[y, row].sum(1, keepdims=True) == 0), F[y, max(row.min() - 3, 0)], F[y, row])
+    top = np.where(ext[:, x] > 0)[0]
+    if len(top) == 0: continue
+    ytop[x] = top.min() + EDGE; col = top[hid[top, x]]
+    F[col, x] = F[max(top.min() - 3, 0), x]
+for y in range(570, 790):                     # pixels nearer the left edge than the top edge take the sleeve colour
+    rr = np.where(lap[y, :])[0]
+    if len(rr) == 0 or ext[y, rr.min()] == 0: continue
+    x0_ = rr.min(); span = np.arange(x0_ - EDGE, min(x0_ + EXT_IN, W))
+    span = span[hid[y, span] & (ext[y, span] > 0) & ((span - x0_) < (y - ytop[span]))]
+    if len(span): F[y, span] = F[y, max(x0_ - EDGE - 3, 0)]
 # holes fully enclosed by the people and the laptop (the blouse just above the lid) are people too
 Mfull = ((a > 0.5) | lap).astype(np.uint8)
 inv_h = (1 - Mfull).copy(); ffh = np.zeros((H + 2, W + 2), np.uint8); cv2.floodFill(inv_h, ffh, (0, 0), 0)
@@ -113,7 +124,7 @@ np.save(f'{SP}/alpha_people.npy', a)
 # foreground (static): the laptop, plus the desk zone (cup, books, desk, wave) wherever the people are not.
 # The background in the desk zone is static too (the drift layer fades out there), so a rectangle is fine,
 # but it keeps 6px away from the people so they move freely over the still background.
-fg = (lap & (a_body < 0.5)).astype(np.float32)
+fg = ((lap & (a_body < 0.5)) | edge_band).astype(np.float32)
 zone = np.zeros((H, W), np.float32); zone[596:H, 0:1105] = 1
 near_people = cv2.dilate((a_body > 0.05).astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))).astype(bool)
 zone[near_people & ~lap] = 0
